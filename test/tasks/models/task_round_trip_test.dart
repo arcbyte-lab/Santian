@@ -12,7 +12,11 @@ void main() {
   late Isar isar;
 
   setUpAll(() async {
-    await Isar.initializeIsarCore(download: true);
+    // Locally, fetch the native library on first run. In CI it is pre-placed
+    // and hash-verified (see ci.yml), so never download an unchecked copy.
+    await Isar.initializeIsarCore(
+      download: Platform.environment['CI'] != 'true',
+    );
   });
 
   setUp(() async {

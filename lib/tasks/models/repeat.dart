@@ -20,6 +20,8 @@ class Repeat {
   List<int> weekdays = [];
 }
 
+// Both enums are stored by ordinal position. Only append new members at the
+// end; inserting or reordering silently changes what existing data means.
 enum RepeatFrequency { daily, weekly, monthly, yearly, custom }
 
 enum RepeatUnit { days, weeks, months, years }
