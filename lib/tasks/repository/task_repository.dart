@@ -5,9 +5,8 @@ import 'package:isar_community/isar.dart';
 import '../models/task.dart';
 import 'watch_query.dart';
 
-/// The one place that reads and mutates Tasks. Only the watch methods exist so
-/// far; writes and notification coordination arrive with the tickets that need
-/// them.
+/// The one place that reads and mutates Tasks. Notification coordination
+/// arrives with the notifications ticket.
 class TaskRepository {
   TaskRepository(this._isar)
       // Registered now, and kept for the repository's life; see watchQuery.
@@ -25,4 +24,8 @@ class TaskRepository {
         _changes,
         () => _isar.tasks.filter().isStarredEqualTo(true).findAll(),
       );
+
+  /// Saves a new Task and returns its id.
+  Future<int> create(Task task) =>
+      _isar.writeTxn(() => _isar.tasks.put(task));
 }

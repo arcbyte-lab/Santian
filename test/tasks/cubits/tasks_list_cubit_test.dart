@@ -212,4 +212,53 @@ void main() {
 
     expect(identical(cubit.state, settled), isTrue);
   });
+
+  group('the List a new Task goes into', () {
+    test('is the active List', () async {
+      final first = await addList('Personal Interest');
+      final second = await addList('My Tasks');
+      cubit = newCubit();
+      final opened = await until(cubit, (s) => s.activeTab == ListTab(first));
+      expect(opened.createListId, first);
+
+      cubit.selectTab(ListTab(second));
+      final switched = await until(cubit, (s) => s.activeTab == ListTab(second));
+
+      expect(switched.createListId, second);
+    });
+
+    test('on Star is the last List that was active before it', () async {
+      await addList('Personal Interest');
+      final second = await addList('My Tasks');
+      cubit = newCubit();
+      await until(cubit, (s) => s.activeTab is ListTab && !s.isLoading);
+      cubit.selectTab(ListTab(second));
+      await until(cubit, (s) => s.activeTab == ListTab(second));
+
+      cubit.selectTab(const StarredTab());
+      final onStar = await until(cubit, (s) => s.activeTab == const StarredTab());
+
+      expect(onStar.createListId, second);
+    });
+
+    test('on Star right after opening is the first List', () async {
+      final first = await addList('Personal Interest');
+      await addList('My Tasks');
+      cubit = newCubit();
+      await until(cubit, (s) => s.activeTab == ListTab(first));
+
+      cubit.selectTab(const StarredTab());
+      final onStar = await until(cubit, (s) => s.activeTab == const StarredTab());
+
+      expect(onStar.createListId, first);
+    });
+
+    test('is null while there are no Lists', () async {
+      cubit = newCubit();
+
+      final state = await until(cubit, (s) => !s.isLoading);
+
+      expect(state.createListId, isNull);
+    });
+  });
 }

@@ -6,6 +6,7 @@ import 'package:santian/tasks/cubits/tasks_list_state.dart';
 import 'package:santian/tasks/models/task.dart';
 import 'package:santian/tasks/models/task_list.dart';
 import 'package:santian/tasks/screens/tasks_list_view.dart';
+import 'package:santian/tasks/widgets/create_task_fab.dart';
 
 TaskList _list(int id, String name, String icon) => TaskList()
   ..id = id
@@ -30,6 +31,7 @@ Future<void> _pump(
   WidgetTester tester,
   TasksListState state, {
   ValueChanged<TasksTab>? onTabSelected,
+  VoidCallback? onCreateTask,
   ThemeData? theme,
   ThemeData? darkTheme,
   ThemeMode themeMode = ThemeMode.light,
@@ -39,7 +41,11 @@ Future<void> _pump(
       theme: theme ?? AppTheme.light,
       darkTheme: darkTheme ?? AppTheme.dark,
       themeMode: themeMode,
-      home: TasksListView(state: state, onTabSelected: onTabSelected ?? (_) {}),
+      home: TasksListView(
+        state: state,
+        onTabSelected: onTabSelected ?? (_) {},
+        onCreateTask: onCreateTask,
+      ),
     ),
   );
 }
@@ -188,6 +194,31 @@ void main() {
 
     expect(find.bySemanticsLabel('Create task'), findsOneWidget);
     expect(find.byIcon(Icons.add), findsOneWidget);
+  });
+
+  testWidgets('tapping the create-task button calls onCreateTask', (tester) async {
+    var taps = 0;
+    await _pump(
+      tester,
+      TasksListState(lists: _lists, activeTab: const ListTab(1), isLoading: false),
+      onCreateTask: () => taps++,
+    );
+
+    await tester.tap(find.byIcon(Icons.add));
+
+    expect(taps, 1);
+  });
+
+  testWidgets('with no onCreateTask the button does nothing', (tester) async {
+    await _pump(tester, const TasksListState(isLoading: false));
+
+    await tester.tap(find.byIcon(Icons.add));
+
+    expect(tester.takeException(), isNull);
+    final inkWell = tester.widget<InkWell>(
+      find.descendant(of: find.byType(CreateTaskFab), matching: find.byType(InkWell)),
+    );
+    expect(inkWell.onTap, isNull);
   });
 
   testWidgets('renders with no Lists and no tasks', (tester) async {

@@ -33,6 +33,7 @@ class TasksListState {
   const TasksListState({
     this.lists = const [],
     this.activeTab,
+    this.lastListId,
     this.tasks = const [],
     this.isLoading = true,
   });
@@ -42,8 +43,25 @@ class TasksListState {
   /// Null only while there are no Lists at all.
   final TasksTab? activeTab;
 
+  /// The last List that was active, so Star can still say where a new Task
+  /// goes. Null until a List has been active.
+  final int? lastListId;
+
   /// The active tab's tasks, already in display order.
   final List<Task> tasks;
 
   final bool isLoading;
+
+  /// The List a new Task is created in: the active List; on Star, the last
+  /// List that was active before it; failing that, the first List. Null only
+  /// when there are no Lists at all.
+  int? get createListId {
+    final first = lists.isEmpty ? null : lists.first.id;
+    return switch (activeTab) {
+      ListTab(:final listId) => listId,
+      StarredTab() =>
+        lists.any((l) => l.id == lastListId) ? lastListId : first,
+      null => first,
+    };
+  }
 }

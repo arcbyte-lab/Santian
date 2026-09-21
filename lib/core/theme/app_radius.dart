@@ -11,4 +11,7 @@ abstract final class AppRadius {
   static const double chip = 20;
 
   static const double fab = 26;
+
+  /// The tinted background behind an active icon in the Create Task actions row.
+  static const double actionPill = 14;
 }

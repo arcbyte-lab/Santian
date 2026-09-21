@@ -13,10 +13,14 @@ class TasksListView extends StatelessWidget {
     super.key,
     required this.state,
     required this.onTabSelected,
+    this.onCreateTask,
   });
 
   final TasksListState state;
   final ValueChanged<TasksTab> onTabSelected;
+
+  /// Called when the FAB is tapped. Null disables it.
+  final VoidCallback? onCreateTask;
 
   @override
   Widget build(BuildContext context) {
@@ -45,10 +49,10 @@ class TasksListView extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const Positioned(
+                  Positioned(
                     right: 21,
                     bottom: 23,
-                    child: CreateTaskFab(),
+                    child: CreateTaskFab(onPressed: onCreateTask),
                   ),
                 ],
               ),
