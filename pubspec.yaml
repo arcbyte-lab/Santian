@@ -38,6 +38,7 @@ dependencies:
   uuid: ^4.6.0
   isar_community: 3.3.2
   isar_community_flutter_libs: 3.3.2
+  path_provider: ^2.1.6
 
 dev_dependencies:
   flutter_test:

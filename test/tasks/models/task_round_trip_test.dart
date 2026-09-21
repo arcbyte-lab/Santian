@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
 import 'package:santian/tasks/models/repeat.dart';
@@ -7,31 +5,18 @@ import 'package:santian/tasks/models/subtask.dart';
 import 'package:santian/tasks/models/task.dart';
 import 'package:santian/tasks/models/task_list.dart';
 
+import '../../support/test_isar.dart';
+
 void main() {
-  late Directory dir;
+  late TestIsar db;
   late Isar isar;
 
-  setUpAll(() async {
-    // Locally, fetch the native library on first run. In CI it is pre-placed
-    // and hash-verified (see ci.yml), so never download an unchecked copy.
-    await Isar.initializeIsarCore(
-      download: Platform.environment['CI'] != 'true',
-    );
-  });
-
   setUp(() async {
-    dir = await Directory.systemTemp.createTemp('santian_isar_test_');
-    isar = await Isar.open(
-      [TaskSchema, TaskListSchema],
-      directory: dir.path,
-      name: 'test',
-    );
+    db = await TestIsar.open();
+    isar = db.isar;
   });
 
-  tearDown(() async {
-    await isar.close(deleteFromDisk: true);
-    await dir.delete(recursive: true);
-  });
+  tearDown(() => db.close());
 
   test('a Task round-trips with an embedded Repeat and Subtasks', () async {
     final reminder = DateTime(2026, 9, 21, 9);
