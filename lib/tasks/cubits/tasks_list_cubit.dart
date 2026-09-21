@@ -39,6 +39,7 @@ class TasksListCubit extends Cubit<TasksListState> {
       emit(TasksListState(
         lists: lists,
         activeTab: active,
+        lastListId: state.lastListId,
         tasks: state.tasks,
         isLoading: state.isLoading,
       ));
@@ -57,7 +58,8 @@ class TasksListCubit extends Cubit<TasksListState> {
 
   void _activate(TasksTab tab, {required List<TaskList> lists}) {
     _tasksSub?.cancel();
-    emit(TasksListState(lists: lists, activeTab: tab));
+    final lastListId = tab is ListTab ? tab.listId : state.lastListId;
+    emit(TasksListState(lists: lists, activeTab: tab, lastListId: lastListId));
 
     final stream = switch (tab) {
       StarredTab() => _tasks.watchStarred(),
@@ -67,6 +69,7 @@ class TasksListCubit extends Cubit<TasksListState> {
       emit(TasksListState(
         lists: state.lists,
         activeTab: tab,
+        lastListId: lastListId,
         tasks: sortTasksForDisplay(tasks),
         isLoading: false,
       ));

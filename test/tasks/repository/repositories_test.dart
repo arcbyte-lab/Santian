@@ -37,6 +37,24 @@ void main() {
   tearDown(() => db.close());
 
   group('TaskRepository', () {
+    test('create saves the Task and returns its id', () async {
+      final id = await tasks.create(task(3, 'made'));
+
+      expect(id, isNot(Isar.autoIncrement));
+      final saved = (await isar.tasks.get(id))!;
+      expect(saved.title, 'made');
+      expect(saved.listId, 3);
+    });
+
+    test('a created Task reaches a live watch of its List', () async {
+      final stream = tasks.watchByList(1).asBroadcastStream();
+      await next(stream, (t) => t.isEmpty);
+
+      await tasks.create(task(1, 'live'));
+
+      expect(await next(stream, (t) => t.isNotEmpty), ['live']);
+    });
+
     test('watchByList emits only that List\'s tasks, and updates live', () async {
       await put(task(1, 'a'));
       await put(task(2, 'other list'));

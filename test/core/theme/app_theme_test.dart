@@ -97,6 +97,7 @@ void main() {
     expect(AppRadius.pill, 100);
     expect(AppRadius.chip, 20);
     expect(AppRadius.fab, 26);
+    expect(AppRadius.actionPill, 14);
   });
 
   test('the FAB shadow is the one drawn value, 0 4 16 #00000025', () {
