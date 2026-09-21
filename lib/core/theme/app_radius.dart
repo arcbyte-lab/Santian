@@ -12,6 +12,9 @@ abstract final class AppRadius {
 
   static const double fab = 26;
 
+  /// The date/time and deadline picker dialogs.
+  static const double dialog = 24;
+
   /// The tinted background behind an active icon in the Create Task actions row.
   static const double actionPill = 14;
 }

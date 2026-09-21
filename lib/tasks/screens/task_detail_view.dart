@@ -4,7 +4,9 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
 import '../cubits/task_detail_cubit.dart';
 import '../models/task_list.dart';
+import '../widgets/date_time_picker_dialog.dart';
 import '../widgets/list_selector_sheet.dart';
+import '../widgets/month_grid.dart';
 
 TaskList? _listById(List<TaskList> lists, int listId) {
   for (final list in lists) {
@@ -13,10 +15,22 @@ TaskList? _listById(List<TaskList> lists, int listId) {
   return null;
 }
 
+const List<String> _weekdayNames = [
+  'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun',
+];
+
+String _formatReminderChip(BuildContext context, DateTime dt) {
+  final weekday = _weekdayNames[dt.weekday - 1];
+  final month = monthNames[dt.month - 1].substring(0, 3);
+  final time = TimeOfDay.fromDateTime(dt).format(context);
+  return '$weekday, $month ${dt.day} · $time';
+}
+
 /// Task Detail's content as a function of [state]: Top Bar (Back, Star,
-/// More), List Selector, Title, Description, and the Mark Completed pill.
-/// Reminder, deadline, repeat and subtask rows are not built here — each
-/// later ticket adds its own row between Description and Mark Completed.
+/// More), List Selector, Title, Description, the Reminder field, and the
+/// Mark Completed pill. Deadline, repeat and subtask rows are not built
+/// here — each later ticket adds its own row between Reminder and Mark
+/// Completed.
 class TaskDetailView extends StatefulWidget {
   const TaskDetailView({
     super.key,
@@ -27,6 +41,7 @@ class TaskDetailView extends StatefulWidget {
     required this.onSelectList,
     required this.onTitleChanged,
     required this.onDescriptionChanged,
+    required this.onReminderChanged,
     required this.onToggleCompleted,
     required this.onDelete,
   });
@@ -40,6 +55,9 @@ class TaskDetailView extends StatefulWidget {
   /// Called on blur, once editing stops — not on every keystroke.
   final ValueChanged<String> onTitleChanged;
   final ValueChanged<String> onDescriptionChanged;
+
+  /// Null clears the reminder, removing the chip.
+  final ValueChanged<DateTime?> onReminderChanged;
 
   final VoidCallback onToggleCompleted;
   final VoidCallback onDelete;
@@ -90,6 +108,14 @@ class _TaskDetailViewState extends State<TaskDetailView> {
       currentListId: widget.state.task.listId,
     );
     if (selected != null) widget.onSelectList(selected);
+  }
+
+  Future<void> _pickReminder(BuildContext context) async {
+    final picked = await showDateTimePickerDialog(
+      context,
+      initial: widget.state.task.reminderAt,
+    );
+    if (picked != null) widget.onReminderChanged(picked);
   }
 
   @override
@@ -226,6 +252,14 @@ class _TaskDetailViewState extends State<TaskDetailView> {
             ],
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(28, 0, 28, 14),
+          child: _ReminderField(
+            reminderAt: task.reminderAt,
+            onTap: () => _pickReminder(context),
+            onClear: () => widget.onReminderChanged(null),
+          ),
+        ),
         const SizedBox(height: 8),
         Center(
           child: _MarkCompletedPill(
@@ -270,6 +304,96 @@ class _IconAction extends StatelessWidget {
           child: Icon(icon, size: 22, color: color),
         ),
       ),
+    );
+  }
+}
+
+/// The reminder row: "Add reminder" until set, then a removable chip showing
+/// the picked date and time. Tapping the chip's label reopens the picker to
+/// change it; the X clears `reminderAt` on its own, without reopening it.
+class _ReminderField extends StatelessWidget {
+  const _ReminderField({
+    required this.reminderAt,
+    required this.onTap,
+    required this.onClear,
+  });
+
+  final DateTime? reminderAt;
+  final VoidCallback onTap;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final muted = theme.extension<AppColors>()!.mutedForeground;
+    final reminderAt = this.reminderAt;
+
+    if (reminderAt == null) {
+      return InkWell(
+        onTap: onTap,
+        child: Row(
+          children: [
+            Icon(Icons.schedule, size: 20, color: muted),
+            const SizedBox(width: 16),
+            Text(
+              'Add reminder',
+              style: theme.textTheme.bodyMedium!.copyWith(fontSize: 15, color: muted),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final radius = BorderRadius.circular(AppRadius.chip);
+    return Row(
+      children: [
+        Icon(Icons.schedule, size: 20, color: muted),
+        const SizedBox(width: 16),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: scheme.primary.withValues(alpha: 0.1),
+            borderRadius: radius,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Semantics(
+                button: true,
+                label: 'Change reminder',
+                excludeSemantics: true,
+                child: InkWell(
+                  borderRadius: radius,
+                  onTap: onTap,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: Text(
+                      _formatReminderChip(context, reminderAt),
+                      style: theme.textTheme.bodySmall!.copyWith(
+                        fontSize: 13,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Semantics(
+                button: true,
+                label: 'Remove reminder',
+                excludeSemantics: true,
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: onClear,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 6, 12, 6),
+                    child: Icon(Icons.close, size: 14, color: muted),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -8,6 +8,7 @@ import 'package:santian/tasks/screens/create_task_form.dart';
 class _Calls {
   final titles = <String>[];
   final notes = <String>[];
+  final reminders = <DateTime>[];
   var toggleNotes = 0;
   var toggleStar = 0;
   var submits = 0;
@@ -29,6 +30,7 @@ Future<_Calls> _pump(
           onNotesChanged: calls.notes.add,
           onToggleNotes: () => calls.toggleNotes++,
           onToggleStar: () => calls.toggleStar++,
+          onReminderChanged: calls.reminders.add,
           onSubmit: () => calls.submits++,
         ),
       ),
@@ -179,15 +181,27 @@ void main() {
     expect(tester.widget<Icon>(find.byIcon(Icons.notes)).color, primary);
   });
 
-  testWidgets('the date and time icon is disabled until its ticket', (tester) async {
+  testWidgets('the date and time icon opens the picker and reports the pick', (tester) async {
     final calls = await _pump(tester);
+
+    await tester.tap(find.bySemanticsLabel('Set date and time'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pump();
+
+    expect(calls.reminders, hasLength(1));
+    expect(calls.toggleNotes + calls.toggleStar + calls.submits, 0);
+  });
+
+  testWidgets('the date and time icon is tinted once a reminder is set', (tester) async {
+    final primary = AppTheme.light.colorScheme.primary;
     final muted = AppTheme.light.extension<AppColors>()!.mutedForeground;
 
-    await tester.tap(find.byIcon(Icons.schedule));
+    await _pump(tester);
+    expect(tester.widget<Icon>(find.byIcon(Icons.schedule)).color, muted);
 
-    expect(tester.takeException(), isNull);
-    expect(calls.toggleNotes + calls.toggleStar + calls.submits, 0);
-    expect(tester.widget<Icon>(find.byIcon(Icons.schedule)).color, muted.withValues(alpha: 0.5));
+    await _pump(tester, state: CreateTaskState(reminderAt: DateTime(2026, 9, 21, 9)));
+    expect(tester.widget<Icon>(find.byIcon(Icons.schedule)).color, primary);
   });
 
   testWidgets('the compose circle is outlined in primary once there is a title', (tester) async {

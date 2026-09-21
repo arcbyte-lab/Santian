@@ -69,6 +69,26 @@ void main() {
       await c.close();
     });
 
+    test('a Task with a reminder saves reminderAt', () async {
+      final c = cubit()
+        ..setTitle('With reminder')
+        ..setReminder(DateTime(2026, 9, 21, 9));
+
+      await c.submit();
+
+      expect((await saved()).single.reminderAt, DateTime(2026, 9, 21, 9));
+      await c.close();
+    });
+
+    test('no reminder set leaves reminderAt null', () async {
+      final c = cubit()..setTitle('No reminder');
+
+      await c.submit();
+
+      expect((await saved()).single.reminderAt, isNull);
+      await c.close();
+    });
+
     test('a starred Task is saved as starred', () async {
       final c = cubit()
         ..setTitle('Important')
@@ -162,6 +182,15 @@ void main() {
       expect(c.state.notesVisible, isFalse);
       expect(c.state.isStarred, isFalse);
       expect(c.state.canSubmit, isFalse);
+      c.close();
+    });
+
+    test('setReminder updates the state', () {
+      final c = cubit();
+
+      c.setReminder(DateTime(2026, 9, 21, 9));
+
+      expect(c.state.reminderAt, DateTime(2026, 9, 21, 9));
       c.close();
     });
 
