@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
 import '../cubits/task_detail_cubit.dart';
+import '../deadline_status.dart';
 import '../models/task_list.dart';
 import '../widgets/date_time_picker_dialog.dart';
+import '../widgets/deadline_picker_dialog.dart';
 import '../widgets/list_selector_sheet.dart';
 import '../widgets/month_grid.dart';
 
@@ -26,11 +28,16 @@ String _formatReminderChip(BuildContext context, DateTime dt) {
   return '$weekday, $month ${dt.day} · $time';
 }
 
+/// "Sep 20" — no year (a deadline this far out is rare enough not to need
+/// one), no time (`deadline` is date-only).
+String _formatDeadlineChip(DateTime dt) =>
+    '${monthNames[dt.month - 1].substring(0, 3)} ${dt.day}';
+
 /// Task Detail's content as a function of [state]: Top Bar (Back, Star,
-/// More), List Selector, Title, Description, the Reminder field, and the
-/// Mark Completed pill. Deadline, repeat and subtask rows are not built
-/// here — each later ticket adds its own row between Reminder and Mark
-/// Completed.
+/// More), List Selector, Title, Description, the Deadline and Reminder
+/// fields, and the Mark Completed pill. Repeat and subtask rows are not
+/// built here — each later ticket adds its own row between Reminder and
+/// Mark Completed.
 class TaskDetailView extends StatefulWidget {
   const TaskDetailView({
     super.key,
@@ -41,6 +48,7 @@ class TaskDetailView extends StatefulWidget {
     required this.onSelectList,
     required this.onTitleChanged,
     required this.onDescriptionChanged,
+    required this.onDeadlineChanged,
     required this.onReminderChanged,
     required this.onToggleCompleted,
     required this.onDelete,
@@ -55,6 +63,9 @@ class TaskDetailView extends StatefulWidget {
   /// Called on blur, once editing stops — not on every keystroke.
   final ValueChanged<String> onTitleChanged;
   final ValueChanged<String> onDescriptionChanged;
+
+  /// Null clears the deadline, removing the chip.
+  final ValueChanged<DateTime?> onDeadlineChanged;
 
   /// Null clears the reminder, removing the chip.
   final ValueChanged<DateTime?> onReminderChanged;
@@ -116,6 +127,14 @@ class _TaskDetailViewState extends State<TaskDetailView> {
       initial: widget.state.task.reminderAt,
     );
     if (picked != null) widget.onReminderChanged(picked);
+  }
+
+  Future<void> _pickDeadline(BuildContext context) async {
+    final picked = await showDeadlinePickerDialog(
+      context,
+      initial: widget.state.task.deadline,
+    );
+    if (picked != null) widget.onDeadlineChanged(picked);
   }
 
   @override
@@ -254,6 +273,15 @@ class _TaskDetailViewState extends State<TaskDetailView> {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(28, 0, 28, 14),
+          child: _DeadlineField(
+            deadline: task.deadline,
+            overdue: isOverdue(deadline: task.deadline, isCompleted: task.isCompleted),
+            onTap: () => _pickDeadline(context),
+            onClear: () => widget.onDeadlineChanged(null),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(28, 0, 28, 14),
           child: _ReminderField(
             reminderAt: task.reminderAt,
             onTap: () => _pickReminder(context),
@@ -380,6 +408,101 @@ class _ReminderField extends StatelessWidget {
               Semantics(
                 button: true,
                 label: 'Remove reminder',
+                excludeSemantics: true,
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: onClear,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 6, 12, 6),
+                    child: Icon(Icons.close, size: 14, color: muted),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The deadline row: "Add deadline" until set, then a removable chip shaped
+/// like the reminder's — same radius, padding, removable-X pattern — but on
+/// a neutral `muted` background rather than the reminder's accent tint, so
+/// the two don't read as the same kind of chip at a glance. [overdue] turns
+/// the icon, chip text, and (via the caller) the list row's line to
+/// `colorScheme.error`; it reverts the moment the Task is completed or the
+/// deadline is cleared — [overdue] is a computed style, not stored state.
+class _DeadlineField extends StatelessWidget {
+  const _DeadlineField({
+    required this.deadline,
+    required this.overdue,
+    required this.onTap,
+    required this.onClear,
+  });
+
+  final DateTime? deadline;
+  final bool overdue;
+  final VoidCallback onTap;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final appColors = theme.extension<AppColors>()!;
+    final muted = appColors.mutedForeground;
+    final deadline = this.deadline;
+    final iconColor = overdue ? scheme.error : muted;
+
+    if (deadline == null) {
+      return InkWell(
+        onTap: onTap,
+        child: Row(
+          children: [
+            Icon(Icons.calendar_today, size: 20, color: muted),
+            const SizedBox(width: 16),
+            Text(
+              'Add deadline',
+              style: theme.textTheme.bodyMedium!.copyWith(fontSize: 15, color: muted),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final radius = BorderRadius.circular(AppRadius.chip);
+    return Row(
+      children: [
+        Icon(Icons.calendar_today, size: 20, color: iconColor),
+        const SizedBox(width: 16),
+        DecoratedBox(
+          decoration: BoxDecoration(color: appColors.muted, borderRadius: radius),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Semantics(
+                button: true,
+                label: 'Change deadline',
+                excludeSemantics: true,
+                child: InkWell(
+                  borderRadius: radius,
+                  onTap: onTap,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: Text(
+                      _formatDeadlineChip(deadline),
+                      style: theme.textTheme.bodySmall!.copyWith(
+                        fontSize: 13,
+                        color: overdue ? scheme.error : scheme.onSurface,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Semantics(
+                button: true,
+                label: 'Remove deadline',
                 excludeSemantics: true,
                 child: InkWell(
                   customBorder: const CircleBorder(),

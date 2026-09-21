@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../deadline_status.dart';
 import '../models/task.dart';
+import '../widgets/month_grid.dart';
 
-/// One Task on the Tasks List: a circular checkbox, the title, and the
-/// reminder time when there is one. The checkbox calls [onToggle]; tapping
-/// anywhere else on the row calls [onOpenDetail].
+/// One Task on the Tasks List: a circular checkbox, the title, the reminder
+/// time when there is one, and a second muted line — calendar icon plus a
+/// short date — when there is a deadline. That line turns
+/// `colorScheme.error` when the deadline is overdue. The checkbox calls
+/// [onToggle]; tapping anywhere else on the row calls [onOpenDetail].
 class TaskRow extends StatelessWidget {
   const TaskRow({super.key, required this.task, this.onToggle, this.onOpenDetail});
 
@@ -28,6 +32,9 @@ class TaskRow extends StatelessWidget {
     final muted = theme.extension<AppColors>()!.mutedForeground;
     final done = task.isCompleted;
     final reminder = task.reminderAt;
+    final deadline = task.deadline;
+    final overdue = isOverdue(deadline: deadline, isCompleted: done);
+    final deadlineColor = overdue ? theme.colorScheme.error : muted;
 
     return Stack(
       children: [
@@ -61,6 +68,23 @@ class TaskRow extends StatelessWidget {
                             fontSize: 12,
                             color: muted,
                           ),
+                        ),
+                      ],
+                      if (deadline != null) ...[
+                        const SizedBox(height: 3),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.calendar_today, size: 14, color: deadlineColor),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${monthNames[deadline.month - 1].substring(0, 3)} ${deadline.day}',
+                              style: theme.textTheme.bodySmall!.copyWith(
+                                fontSize: 12,
+                                color: deadlineColor,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ],

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
 import 'month_grid.dart';
+import 'picker_button_row.dart';
 
 /// The time a date-only `reminderAt` selection defaults to. Proposed in the
 /// spec, not confirmed by the owner — kept as one named constant so the
@@ -101,35 +102,9 @@ class _DateTimePickerDialogState extends State<DateTimePickerDialog> {
             ),
           ),
           Divider(height: 1, color: theme.colorScheme.outline),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(
-                    'Cancel',
-                    style: theme.textTheme.labelLarge!.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: muted,
-                    ),
-                  ),
-                ),
-                TextButton(
-                  onPressed: _done,
-                  child: Text(
-                    'Done',
-                    style: theme.textTheme.labelLarge!.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: scheme.primary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          PickerButtonRow(
+            onCancel: () => Navigator.of(context).pop(),
+            onDone: _done,
           ),
         ],
       ),
