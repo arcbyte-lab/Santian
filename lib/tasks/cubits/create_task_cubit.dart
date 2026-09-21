@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../models/repeat.dart';
 import '../models/task.dart';
 import '../repository/task_repository.dart';
 
@@ -10,6 +11,7 @@ class CreateTaskState {
     this.notesVisible = false,
     this.isStarred = false,
     this.reminderAt,
+    this.repeat,
   });
 
   final String title;
@@ -17,6 +19,7 @@ class CreateTaskState {
   final bool notesVisible;
   final bool isStarred;
   final DateTime? reminderAt;
+  final Repeat? repeat;
 
   /// A Task needs a title that is not blank; nothing else is required.
   bool get canSubmit => title.trim().isNotEmpty;
@@ -58,8 +61,16 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
 
   void toggleStar() => emit(state.copyWith(isStarred: !state.isStarred));
 
-  void setReminder(DateTime reminderAt) =>
-      emit(state.copyWith(reminderAt: reminderAt));
+  // Bypasses copyWith: `repeat` must be settable back to null (Done with no
+  // repeat configured), which copyWith's `??` pattern can't express.
+  void setReminder(DateTime reminderAt, Repeat? repeat) => emit(CreateTaskState(
+        title: state.title,
+        notes: state.notes,
+        notesVisible: state.notesVisible,
+        isStarred: state.isStarred,
+        reminderAt: reminderAt,
+        repeat: repeat,
+      ));
 
   /// Creates the Task and returns true. Returns false, doing nothing, when the
   /// title is blank (the sheet stays open, with no error) or when a Task was
@@ -77,7 +88,8 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
         ..title = state.title.trim()
         ..description = notes.isEmpty ? null : notes
         ..isStarred = state.isStarred
-        ..reminderAt = state.reminderAt);
+        ..reminderAt = state.reminderAt
+        ..repeat = state.repeat);
     } catch (_) {
       _submitted = false; // a failed save must not lock the sheet
       rethrow;

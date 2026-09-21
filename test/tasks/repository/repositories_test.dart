@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
+import 'package:santian/tasks/models/repeat.dart';
 import 'package:santian/tasks/models/subtask.dart';
 import 'package:santian/tasks/models/task.dart';
 import 'package:santian/tasks/models/task_list.dart';
@@ -113,6 +114,79 @@ void main() {
             .firstWhere((t) => t.single.isCompleted)
             .timeout(const Duration(seconds: 5));
         expect(done.single.title, 'a');
+      });
+
+      group('a repeating Task', () {
+        test('advances reminderAt instead of completing, and stays unchecked', () async {
+          final id = await put(task(1, 'daily')
+            ..reminderAt = DateTime(2026, 9, 21, 9)
+            ..repeat = (Repeat()..frequency = RepeatFrequency.daily));
+
+          await tasks.toggleCompleted((await isar.tasks.get(id))!);
+
+          final saved = (await isar.tasks.get(id))!;
+          expect(saved.isCompleted, isFalse);
+          expect(saved.reminderAt, DateTime(2026, 9, 22, 9));
+        });
+
+        test('advances deadline independently, when set', () async {
+          final id = await put(task(1, 'daily')
+            ..reminderAt = DateTime(2026, 9, 21, 9)
+            ..deadline = DateTime(2026, 9, 25)
+            ..repeat = (Repeat()..frequency = RepeatFrequency.daily));
+
+          await tasks.toggleCompleted((await isar.tasks.get(id))!);
+
+          final saved = (await isar.tasks.get(id))!;
+          expect(saved.reminderAt, DateTime(2026, 9, 22, 9));
+          expect(saved.deadline, DateTime(2026, 9, 26));
+        });
+
+        test('with no deadline, leaves it null', () async {
+          final id = await put(task(1, 'daily')
+            ..reminderAt = DateTime(2026, 9, 21, 9)
+            ..repeat = (Repeat()..frequency = RepeatFrequency.daily));
+
+          await tasks.toggleCompleted((await isar.tasks.get(id))!);
+
+          expect((await isar.tasks.get(id))!.deadline, isNull);
+        });
+
+        test('no catch-up: completing three days late still advances by exactly one day', () async {
+          final id = await put(task(1, 'daily')
+            ..reminderAt = DateTime(2026, 9, 18, 9)
+            ..repeat = (Repeat()..frequency = RepeatFrequency.daily));
+
+          await tasks.toggleCompleted((await isar.tasks.get(id))!);
+
+          expect((await isar.tasks.get(id))!.reminderAt, DateTime(2026, 9, 19, 9));
+        });
+
+        test('completing repeatedly advances one occurrence each time', () async {
+          final id = await put(task(1, 'daily')
+            ..reminderAt = DateTime(2026, 9, 21, 9)
+            ..repeat = (Repeat()..frequency = RepeatFrequency.daily));
+
+          await tasks.toggleCompleted((await isar.tasks.get(id))!);
+          await tasks.toggleCompleted((await isar.tasks.get(id))!);
+          await tasks.toggleCompleted((await isar.tasks.get(id))!);
+
+          expect((await isar.tasks.get(id))!.reminderAt, DateTime(2026, 9, 24, 9));
+        });
+
+        test('a weekly repeat with selected weekdays advances via nextOccurrence', () async {
+          // 2026-09-21 is a Monday; Mon+Thu selected, so completing Monday
+          // advances to Thursday of the same week.
+          final id = await put(task(1, 'weekly')
+            ..reminderAt = DateTime(2026, 9, 21, 9)
+            ..repeat = (Repeat()
+              ..frequency = RepeatFrequency.weekly
+              ..weekdays = [1, 4]));
+
+          await tasks.toggleCompleted((await isar.tasks.get(id))!);
+
+          expect((await isar.tasks.get(id))!.reminderAt, DateTime(2026, 9, 24, 9));
+        });
       });
     });
 

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
 import 'package:santian/tasks/cubits/create_task_cubit.dart';
+import 'package:santian/tasks/models/repeat.dart';
 import 'package:santian/tasks/models/task.dart';
 import 'package:santian/tasks/repository/task_repository.dart';
 
@@ -72,11 +73,24 @@ void main() {
     test('a Task with a reminder saves reminderAt', () async {
       final c = cubit()
         ..setTitle('With reminder')
-        ..setReminder(DateTime(2026, 9, 21, 9));
+        ..setReminder(DateTime(2026, 9, 21, 9), null);
 
       await c.submit();
 
       expect((await saved()).single.reminderAt, DateTime(2026, 9, 21, 9));
+      await c.close();
+    });
+
+    test('a Task with a repeat saves it alongside the reminder', () async {
+      final repeat = Repeat()..frequency = RepeatFrequency.daily;
+      final c = cubit()
+        ..setTitle('Repeats')
+        ..setReminder(DateTime(2026, 9, 21, 9), repeat);
+
+      await c.submit();
+
+      final task = (await saved()).single;
+      expect(task.repeat?.frequency, RepeatFrequency.daily);
       await c.close();
     });
 
@@ -188,9 +202,20 @@ void main() {
     test('setReminder updates the state', () {
       final c = cubit();
 
-      c.setReminder(DateTime(2026, 9, 21, 9));
+      c.setReminder(DateTime(2026, 9, 21, 9), null);
 
       expect(c.state.reminderAt, DateTime(2026, 9, 21, 9));
+      expect(c.state.repeat, isNull);
+      c.close();
+    });
+
+    test('setReminder stores the repeat alongside the reminder', () {
+      final c = cubit();
+      final repeat = Repeat()..frequency = RepeatFrequency.weekly;
+
+      c.setReminder(DateTime(2026, 9, 21, 9), repeat);
+
+      expect(c.state.repeat?.frequency, RepeatFrequency.weekly);
       c.close();
     });
 
