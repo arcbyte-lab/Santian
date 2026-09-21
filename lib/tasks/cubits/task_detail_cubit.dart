@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../models/repeat.dart';
 import '../models/task.dart';
 import '../repository/task_repository.dart';
 
@@ -53,9 +54,14 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
 
   Future<void> setListId(int listId) => _edit((t) => t.listId = listId);
 
-  /// Null clears the reminder, removing the chip.
-  Future<void> setReminder(DateTime? reminderAt) =>
-      _edit((t) => t.reminderAt = reminderAt);
+  /// Null clears the reminder, removing the chip. Clearing also clears
+  /// `repeat` — a spec gap: `toggleCompleted`'s repeating branch reads
+  /// `reminderAt!`, so a repeat left dangling with no reminder would crash
+  /// on completion. Flagged back to Arcbyte to confirm, not a ruling.
+  Future<void> setReminder(DateTime? reminderAt, {Repeat? repeat}) => _edit((t) {
+        t.reminderAt = reminderAt;
+        t.repeat = reminderAt == null ? null : repeat;
+      });
 
   /// Null clears the deadline, removing the chip.
   Future<void> setDeadline(DateTime? deadline) =>

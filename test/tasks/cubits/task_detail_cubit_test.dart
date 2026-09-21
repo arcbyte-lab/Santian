@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
 import 'package:santian/tasks/cubits/task_detail_cubit.dart';
+import 'package:santian/tasks/models/repeat.dart';
 import 'package:santian/tasks/models/task.dart';
 import 'package:santian/tasks/repository/task_repository.dart';
 
@@ -129,6 +130,32 @@ void main() {
 
       expect(c.state.task.reminderAt, isNull);
       expect((await isar.tasks.get(task.id))!.reminderAt, isNull);
+      await c.close();
+    });
+
+    test('sets and persists a repeat alongside the reminder', () async {
+      final task = await seed();
+      final c = cubit(task);
+      final repeat = Repeat()..frequency = RepeatFrequency.weekly;
+
+      await c.setReminder(DateTime(2026, 9, 21, 9), repeat: repeat);
+
+      expect(c.state.task.repeat?.frequency, RepeatFrequency.weekly);
+      expect((await isar.tasks.get(task.id))!.repeat?.frequency, RepeatFrequency.weekly);
+      await c.close();
+    });
+
+    test('null also clears a previously-set repeat', () async {
+      final task = await seed();
+      await tasks.update(task
+        ..reminderAt = DateTime(2026, 9, 21, 9)
+        ..repeat = (Repeat()..frequency = RepeatFrequency.daily));
+      final c = cubit(task);
+
+      await c.setReminder(null);
+
+      expect(c.state.task.repeat, isNull);
+      expect((await isar.tasks.get(task.id))!.repeat, isNull);
       await c.close();
     });
   });

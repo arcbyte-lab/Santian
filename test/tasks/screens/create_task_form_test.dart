@@ -3,12 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:santian/core/theme/app_colors.dart';
 import 'package:santian/core/theme/app_theme.dart';
 import 'package:santian/tasks/cubits/create_task_cubit.dart';
+import 'package:santian/tasks/models/repeat.dart';
 import 'package:santian/tasks/screens/create_task_form.dart';
 
 class _Calls {
   final titles = <String>[];
   final notes = <String>[];
   final reminders = <DateTime>[];
+  final repeats = <Repeat?>[];
   var toggleNotes = 0;
   var toggleStar = 0;
   var submits = 0;
@@ -30,7 +32,10 @@ Future<_Calls> _pump(
           onNotesChanged: calls.notes.add,
           onToggleNotes: () => calls.toggleNotes++,
           onToggleStar: () => calls.toggleStar++,
-          onReminderChanged: calls.reminders.add,
+          onReminderChanged: (dateTime, repeat) {
+            calls.reminders.add(dateTime);
+            calls.repeats.add(repeat);
+          },
           onSubmit: () => calls.submits++,
         ),
       ),

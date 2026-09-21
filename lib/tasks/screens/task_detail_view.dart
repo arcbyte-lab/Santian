@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
 import '../cubits/task_detail_cubit.dart';
 import '../deadline_status.dart';
+import '../models/repeat.dart';
 import '../models/task_list.dart';
 import '../widgets/date_time_picker_dialog.dart';
 import '../widgets/deadline_picker_dialog.dart';
@@ -67,8 +68,9 @@ class TaskDetailView extends StatefulWidget {
   /// Null clears the deadline, removing the chip.
   final ValueChanged<DateTime?> onDeadlineChanged;
 
-  /// Null clears the reminder, removing the chip.
-  final ValueChanged<DateTime?> onReminderChanged;
+  /// Null clears the reminder, removing the chip. Clearing also clears
+  /// `repeat` — a repeat set with no `reminderAt` has nothing to advance.
+  final void Function(DateTime? dateTime, {Repeat? repeat}) onReminderChanged;
 
   final VoidCallback onToggleCompleted;
   final VoidCallback onDelete;
@@ -125,8 +127,9 @@ class _TaskDetailViewState extends State<TaskDetailView> {
     final picked = await showDateTimePickerDialog(
       context,
       initial: widget.state.task.reminderAt,
+      initialRepeat: widget.state.task.repeat,
     );
-    if (picked != null) widget.onReminderChanged(picked);
+    if (picked != null) widget.onReminderChanged(picked.dateTime, repeat: picked.repeat);
   }
 
   Future<void> _pickDeadline(BuildContext context) async {

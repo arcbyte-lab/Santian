@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
 import '../cubits/create_task_cubit.dart';
+import '../models/repeat.dart';
 import '../widgets/date_time_picker_dialog.dart';
 
 /// The contents of the Create Task sheet as a function of [state]: a compose
@@ -25,7 +26,7 @@ class CreateTaskForm extends StatefulWidget {
   final ValueChanged<String> onNotesChanged;
   final VoidCallback onToggleNotes;
   final VoidCallback onToggleStar;
-  final ValueChanged<DateTime> onReminderChanged;
+  final void Function(DateTime dateTime, Repeat? repeat) onReminderChanged;
 
   /// Keyboard Enter or Done in the title field.
   final VoidCallback onSubmit;
@@ -43,8 +44,9 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
     final picked = await showDateTimePickerDialog(
       context,
       initial: widget.state.reminderAt,
+      initialRepeat: widget.state.repeat,
     );
-    if (picked != null) widget.onReminderChanged(picked);
+    if (picked != null) widget.onReminderChanged(picked.dateTime, picked.repeat);
   }
 
   @override
