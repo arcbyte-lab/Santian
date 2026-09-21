@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:isar_community/isar.dart';
+import 'package:santian/core/theme/app_colors.dart';
+import 'package:santian/core/theme/app_theme.dart';
+import 'package:santian/tasks/models/task.dart';
 
 import '../../support/tasks_screen_harness.dart';
 
@@ -118,6 +122,70 @@ void main() {
     expect(find.text('Done'), findsNothing, reason: 'the picker did not reopen');
     expect(find.text('Add reminder'), findsOneWidget);
     expect((await h.saved()).single.reminderAt, isNull);
+  });
+
+  testWidgets('setting a deadline shows a removable chip and persists it', (tester) async {
+    final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
+    await h.addTask('alpha');
+
+    await h.openDetail('alpha');
+    expect(find.text('Add deadline'), findsOneWidget);
+
+    await tester.tap(find.text('Add deadline'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    await h.settle();
+
+    expect(find.text('Add deadline'), findsNothing);
+    expect((await h.saved()).single.deadline, isNotNull);
+  });
+
+  semanticsTest('the X on the deadline chip clears deadline without reopening the picker', (tester) async {
+    final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
+    await h.addTask('alpha');
+
+    await h.openDetail('alpha');
+    await tester.tap(find.text('Add deadline'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    await h.settle();
+    expect((await h.saved()).single.deadline, isNotNull);
+
+    await tester.tap(find.bySemanticsLabel('Remove deadline'));
+    await h.settle();
+
+    expect(find.text('Done'), findsNothing, reason: 'the picker did not reopen');
+    expect(find.text('Add deadline'), findsOneWidget);
+    expect((await h.saved()).single.deadline, isNull);
+  });
+
+  testWidgets('completing an overdue Task clears the deadline chip\'s red styling', (tester) async {
+    final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
+    await h.addTask('alpha');
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    await h.tester.runAsync(() async {
+      final task = (await h.isar.tasks.where().findAll()).single;
+      await h.isar.writeTxn(() => h.isar.tasks.put(task..deadline = yesterday));
+    });
+    await h.settle();
+
+    await h.openDetail('alpha');
+    // The Tasks List row behind the sheet shows the same deadline line, so
+    // more than one calendar icon is in the tree; both must agree either way.
+    final error = AppTheme.light.colorScheme.error;
+    for (final icon in tester.widgetList<Icon>(find.byIcon(Icons.calendar_today))) {
+      expect(icon.color, error);
+    }
+
+    await tester.tap(find.text('Mark completed'));
+    await h.settle();
+
+    final muted = AppTheme.light.extension<AppColors>()!.mutedForeground;
+    for (final icon in tester.widgetList<Icon>(find.byIcon(Icons.calendar_today))) {
+      expect(icon.color, muted);
+    }
   });
 
   testWidgets('More, Delete removes the Task and closes the sheet with no confirm dialog', (tester) async {

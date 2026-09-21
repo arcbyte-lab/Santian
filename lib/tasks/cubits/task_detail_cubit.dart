@@ -57,6 +57,10 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
   Future<void> setReminder(DateTime? reminderAt) =>
       _edit((t) => t.reminderAt = reminderAt);
 
+  /// Null clears the deadline, removing the chip.
+  Future<void> setDeadline(DateTime? deadline) =>
+      _edit((t) => t.deadline = deadline);
+
   Future<void> _edit(void Function(Task) mutate) {
     final next = _clone(state.task);
     mutate(next);

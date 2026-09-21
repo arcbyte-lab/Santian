@@ -78,6 +78,7 @@ class TaskDetailSheet extends StatelessWidget {
                 onSelectList: (list) => cubit.setListId(list.id),
                 onTitleChanged: cubit.setTitle,
                 onDescriptionChanged: cubit.setDescription,
+                onDeadlineChanged: cubit.setDeadline,
                 onReminderChanged: cubit.setReminder,
                 onToggleCompleted: cubit.toggleCompleted,
                 onDelete: cubit.delete,

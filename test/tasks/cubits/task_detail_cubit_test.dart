@@ -133,6 +133,31 @@ void main() {
     });
   });
 
+  group('setDeadline', () {
+    test('sets and persists deadline', () async {
+      final task = await seed();
+      final c = cubit(task);
+
+      await c.setDeadline(DateTime(2026, 9, 21));
+
+      expect(c.state.task.deadline, DateTime(2026, 9, 21));
+      expect((await isar.tasks.get(task.id))!.deadline, DateTime(2026, 9, 21));
+      await c.close();
+    });
+
+    test('null clears it', () async {
+      final task = await seed();
+      await tasks.update(task..deadline = DateTime(2026, 9, 21));
+      final c = cubit(task);
+
+      await c.setDeadline(null);
+
+      expect(c.state.task.deadline, isNull);
+      expect((await isar.tasks.get(task.id))!.deadline, isNull);
+      await c.close();
+    });
+  });
+
   group('toggleCompleted', () {
     test('completes an incomplete Task', () async {
       final task = await seed();
