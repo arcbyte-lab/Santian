@@ -60,6 +60,7 @@ class CreateTaskSheet extends StatelessWidget {
             onNotesChanged: cubit.setNotes,
             onToggleNotes: cubit.toggleNotes,
             onToggleStar: cubit.toggleStar,
+            onReminderChanged: cubit.setReminder,
             onSubmit: () => _submit(context),
           ),
         );

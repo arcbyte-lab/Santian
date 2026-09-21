@@ -53,6 +53,10 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
 
   Future<void> setListId(int listId) => _edit((t) => t.listId = listId);
 
+  /// Null clears the reminder, removing the chip.
+  Future<void> setReminder(DateTime? reminderAt) =>
+      _edit((t) => t.reminderAt = reminderAt);
+
   Future<void> _edit(void Function(Task) mutate) {
     final next = _clone(state.task);
     mutate(next);

@@ -83,6 +83,43 @@ void main() {
     expect((await h.saved()).single.isCompleted, isFalse);
   });
 
+  testWidgets('setting a reminder shows a removable chip and persists it', (tester) async {
+    final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
+    await h.addTask('alpha');
+
+    await h.openDetail('alpha');
+    expect(find.text('Add reminder'), findsOneWidget);
+
+    await tester.tap(find.text('Add reminder'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    await h.settle();
+
+    expect(find.text('Add reminder'), findsNothing);
+    expect((await h.saved()).single.reminderAt, isNotNull);
+  });
+
+  semanticsTest('the X on the reminder chip clears reminderAt without reopening the picker', (tester) async {
+    final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
+    await h.addTask('alpha');
+
+    await h.openDetail('alpha');
+    await tester.tap(find.text('Add reminder'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    await h.settle();
+    expect((await h.saved()).single.reminderAt, isNotNull);
+
+    await tester.tap(find.bySemanticsLabel('Remove reminder'));
+    await h.settle();
+
+    expect(find.text('Done'), findsNothing, reason: 'the picker did not reopen');
+    expect(find.text('Add reminder'), findsOneWidget);
+    expect((await h.saved()).single.reminderAt, isNull);
+  });
+
   testWidgets('More, Delete removes the Task and closes the sheet with no confirm dialog', (tester) async {
     final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
     await h.addTask('alpha');

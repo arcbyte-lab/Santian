@@ -108,6 +108,31 @@ void main() {
     await c.close();
   });
 
+  group('setReminder', () {
+    test('sets and persists reminderAt', () async {
+      final task = await seed();
+      final c = cubit(task);
+
+      await c.setReminder(DateTime(2026, 9, 21, 9));
+
+      expect(c.state.task.reminderAt, DateTime(2026, 9, 21, 9));
+      expect((await isar.tasks.get(task.id))!.reminderAt, DateTime(2026, 9, 21, 9));
+      await c.close();
+    });
+
+    test('null clears it', () async {
+      final task = await seed();
+      await tasks.update(task..reminderAt = DateTime(2026, 9, 21, 9));
+      final c = cubit(task);
+
+      await c.setReminder(null);
+
+      expect(c.state.task.reminderAt, isNull);
+      expect((await isar.tasks.get(task.id))!.reminderAt, isNull);
+      await c.close();
+    });
+  });
+
   group('toggleCompleted', () {
     test('completes an incomplete Task', () async {
       final task = await seed();

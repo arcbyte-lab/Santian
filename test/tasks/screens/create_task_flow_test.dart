@@ -67,6 +67,24 @@ void main() {
     expect(task.isStarred, isTrue);
   });
 
+  testWidgets('the clock icon sets a reminder that is saved with the Task', (tester) async {
+    final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
+
+    await h.openSheet();
+    await tester.enterText(find.byType(TextField), 'Morning workout');
+    await tester.tap(find.bySemanticsLabel('Set date and time'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await h.settle();
+
+    final task = (await h.saved()).single;
+    expect(task.title, 'Morning workout');
+    expect(task.reminderAt, isNotNull);
+    expect(TimeOfDay.fromDateTime(task.reminderAt!), const TimeOfDay(hour: 9, minute: 0));
+  });
+
   testWidgets('a Task is created in whichever List tab is active', (tester) async {
     final h = await TasksScreenHarness.start(tester, ['Personal Interest', 'My Tasks']);
     final second = (await tester.runAsync(() => h.isar.taskLists.where().findAll()))!.last;

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
 import '../cubits/create_task_cubit.dart';
+import '../widgets/date_time_picker_dialog.dart';
 
 /// The contents of the Create Task sheet as a function of [state]: a compose
 /// row, an optional notes field, and the actions row. It owns only the text
@@ -15,6 +16,7 @@ class CreateTaskForm extends StatefulWidget {
     required this.onNotesChanged,
     required this.onToggleNotes,
     required this.onToggleStar,
+    required this.onReminderChanged,
     required this.onSubmit,
   });
 
@@ -23,6 +25,7 @@ class CreateTaskForm extends StatefulWidget {
   final ValueChanged<String> onNotesChanged;
   final VoidCallback onToggleNotes;
   final VoidCallback onToggleStar;
+  final ValueChanged<DateTime> onReminderChanged;
 
   /// Keyboard Enter or Done in the title field.
   final VoidCallback onSubmit;
@@ -35,6 +38,14 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
   final _title = TextEditingController();
   final _notes = TextEditingController();
   final _notesFocus = FocusNode();
+
+  Future<void> _pickReminder(BuildContext context) async {
+    final picked = await showDateTimePickerDialog(
+      context,
+      initial: widget.state.reminderAt,
+    );
+    if (picked != null) widget.onReminderChanged(picked);
+  }
 
   @override
   void didUpdateWidget(CreateTaskForm oldWidget) {
@@ -142,11 +153,12 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
               onTap: widget.onToggleNotes,
             ),
             const SizedBox(width: 8),
-            // The date and time picker arrives with its own ticket.
-            const _ActionIcon(
+            _ActionIcon(
               icon: Icons.schedule,
               size: 16,
               label: 'Set date and time',
+              active: state.reminderAt != null,
+              onTap: () => _pickReminder(context),
             ),
             const SizedBox(width: 8),
             _ActionIcon(
