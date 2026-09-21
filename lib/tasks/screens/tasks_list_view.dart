@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_radius.dart';
 import '../cubits/tasks_list_state.dart';
+import '../models/task.dart';
 import '../widgets/create_task_fab.dart';
 import '../widgets/list_tab_bar.dart';
 import '../widgets/task_row.dart';
@@ -13,11 +14,15 @@ class TasksListView extends StatelessWidget {
     super.key,
     required this.state,
     required this.onTabSelected,
+    this.onToggleTask,
     this.onCreateTask,
   });
 
   final TasksListState state;
   final ValueChanged<TasksTab> onTabSelected;
+
+  /// Called with a Task whose checkbox was tapped. Null leaves checkboxes inert.
+  final ValueChanged<Task>? onToggleTask;
 
   /// Called when the FAB is tapped. Null disables it.
   final VoidCallback? onCreateTask;
@@ -44,7 +49,15 @@ class TasksListView extends StatelessWidget {
                       Expanded(
                         child: ListView.builder(
                           itemCount: state.tasks.length,
-                          itemBuilder: (_, i) => TaskRow(task: state.tasks[i]),
+                          itemBuilder: (_, i) {
+                            final task = state.tasks[i];
+                            return TaskRow(
+                              task: task,
+                              onToggle: onToggleTask == null
+                                  ? null
+                                  : () => onToggleTask!(task),
+                            );
+                          },
                         ),
                       ),
                     ],

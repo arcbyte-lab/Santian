@@ -4,12 +4,19 @@ import '../../core/theme/app_colors.dart';
 import '../models/task.dart';
 
 /// One Task on the Tasks List: a circular checkbox, the title, and the
-/// reminder time when there is one. Read-only for now; the checkbox and the row
-/// do nothing until the tickets that make them interactive.
+/// reminder time when there is one. The checkbox calls [onToggle]; the rest of
+/// the row does nothing until Task Detail exists.
 class TaskRow extends StatelessWidget {
-  const TaskRow({super.key, required this.task});
+  const TaskRow({super.key, required this.task, this.onToggle});
 
   final Task task;
+
+  /// Called when the checkbox is tapped. Null leaves it inert.
+  final VoidCallback? onToggle;
+
+  /// The checkbox's tap target: the row's left edge up to the title, over the
+  /// row's full height. The drawn circle is only 21 wide.
+  static const double _checkboxZone = 24 + 21 + 14;
 
   @override
   Widget build(BuildContext context) {
@@ -18,36 +25,64 @@ class TaskRow extends StatelessWidget {
     final done = task.isCompleted;
     final reminder = task.reminderAt;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-      child: Row(
-        children: [
-          _CheckCircle(completed: done),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  task.title,
-                  style: theme.textTheme.bodyMedium!.copyWith(
-                    fontSize: 15,
-                    color: done ? muted : theme.colorScheme.onSurface,
-                  ),
+    return Stack(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          child: Row(
+            children: [
+              _CheckCircle(completed: done),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ExcludeSemantics(
+                      child: Text(
+                        task.title,
+                        style: theme.textTheme.bodyMedium!.copyWith(
+                          fontSize: 15,
+                          color: done ? muted : theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                    if (reminder != null) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        TimeOfDay.fromDateTime(reminder).format(context),
+                        style: theme.textTheme.bodySmall!.copyWith(
+                          fontSize: 12,
+                          color: muted,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                if (reminder != null) ...[
-                  const SizedBox(height: 3),
-                  Text(
-                    TimeOfDay.fromDateTime(reminder).format(context),
-                    style: theme.textTheme.bodySmall!
-                        .copyWith(fontSize: 12, color: muted),
-                  ),
-                ],
-              ],
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: _checkboxZone,
+          // The checkbox is the row's one labelled control, so screen readers
+          // say "<title>, checkbox, checked"; the title text is excluded below
+          // rather than read a second time.
+          child: Semantics(
+            container: true,
+            checked: done,
+            label: task.title,
+            excludeSemantics: true,
+            onTap: onToggle,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onToggle,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -60,22 +95,19 @@ class _CheckCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Semantics(
-      checked: completed,
-      child: Container(
-        width: 21,
-        height: 21,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: completed ? scheme.primary : null,
-          border: completed
-              ? null
-              : Border.all(color: scheme.outline, width: 1.5),
-        ),
-        child: completed
-            ? Icon(Icons.check, size: 14, color: scheme.onPrimary)
-            : null,
+    return Container(
+      width: 21,
+      height: 21,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: completed ? scheme.primary : null,
+        border: completed
+            ? null
+            : Border.all(color: scheme.outline, width: 1.5),
       ),
+      child: completed
+          ? Icon(Icons.check, size: 14, color: scheme.onPrimary)
+          : null,
     );
   }
 }
