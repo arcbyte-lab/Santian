@@ -1,0 +1,14 @@
+/// Corner radii, hand-picked in the mockup. None derive from the CSS
+/// `--radius` scale, so they are named constants rather than a scale.
+abstract final class AppRadius {
+  /// Bottom sheets and the main panels.
+  static const double sheet = 58;
+
+  /// The `Mark Completed` pill.
+  static const double pill = 100;
+
+  /// The reminder and deadline chips.
+  static const double chip = 20;
+
+  static const double fab = 26;
+}
