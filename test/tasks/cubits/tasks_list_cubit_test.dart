@@ -213,6 +213,45 @@ void main() {
     expect(identical(cubit.state, settled), isTrue);
   });
 
+  group('toggleCompleted', () {
+    test('a completed Task drops below the incomplete ones, and toggling again restores it', () async {
+      final list = await addList('Personal Interest');
+      await addTask(list, 'first', at: nine);
+      await addTask(list, 'second', at: ten);
+      await addTask(list, 'third');
+      cubit = newCubit();
+      final opened = await until(cubit, (s) => s.tasks.length == 3);
+      expect(titles(opened), ['first', 'second', 'third']);
+
+      cubit.toggleCompleted(opened.tasks.first);
+      final completed = await until(cubit, (s) => s.tasks.any((t) => t.isCompleted));
+
+      expect(titles(completed), ['second', 'third', 'first']);
+      expect(completed.tasks.last.isCompleted, isTrue);
+
+      cubit.toggleCompleted(completed.tasks.last);
+      final restored = await until(cubit, (s) => s.tasks.every((t) => !t.isCompleted));
+
+      expect(titles(restored), ['first', 'second', 'third']);
+    });
+
+    test('a completed starred Task stays under Star, in the completed position', () async {
+      final list = await addList('Personal Interest');
+      await addTask(list, 'plain starred', at: ten, starred: true);
+      await addTask(list, 'to complete', at: nine, starred: true);
+      cubit = newCubit();
+      await until(cubit, (s) => s.activeTab is ListTab && !s.isLoading);
+      cubit.selectTab(const StarredTab());
+      final onStar = await until(cubit, (s) => s.activeTab == const StarredTab() && s.tasks.length == 2);
+      expect(titles(onStar), ['to complete', 'plain starred']);
+
+      cubit.toggleCompleted(onStar.tasks.first);
+      final after = await until(cubit, (s) => s.tasks.any((t) => t.isCompleted));
+
+      expect(titles(after), ['plain starred', 'to complete']);
+    });
+  });
+
   group('the List a new Task goes into', () {
     test('is the active List', () async {
       final first = await addList('Personal Interest');

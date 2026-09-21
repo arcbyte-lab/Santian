@@ -27,6 +27,10 @@ class TasksListCubit extends Cubit<TasksListState> {
     _activate(tab, lists: state.lists);
   }
 
+  /// Flips [task]'s completion. The active tab's stream delivers the reordered
+  /// list, so there is nothing to emit here.
+  Future<void> toggleCompleted(Task task) => _tasks.toggleCompleted(task);
+
   void _onLists(List<TaskList> lists) {
     final active = state.activeTab;
     final stillValid = switch (active) {

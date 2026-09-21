@@ -26,6 +26,7 @@ class TasksListScreen extends StatelessWidget {
           return TasksListView(
             state: state,
             onTabSelected: context.read<TasksListCubit>().selectTab,
+            onToggleTask: context.read<TasksListCubit>().toggleCompleted,
             onCreateTask: listId == null
                 ? null
                 : () => showCreateTaskSheet(context, listId: listId),

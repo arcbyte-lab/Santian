@@ -1,3 +1,5 @@
+import 'dart:ui' show CheckedState;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:santian/core/theme/app_colors.dart';
@@ -7,6 +9,9 @@ import 'package:santian/tasks/models/task.dart';
 import 'package:santian/tasks/models/task_list.dart';
 import 'package:santian/tasks/screens/tasks_list_view.dart';
 import 'package:santian/tasks/widgets/create_task_fab.dart';
+import 'package:santian/tasks/widgets/task_row.dart';
+
+import '../../support/tasks_screen_harness.dart' show semanticsTest;
 
 TaskList _list(int id, String name, String icon) => TaskList()
   ..id = id
@@ -186,6 +191,114 @@ void main() {
       expect(_styleOf(tester, 'open').color, scheme.onSurface);
       expect(_styleOf(tester, 'finished').color, muted);
       expect(find.byIcon(Icons.check), findsOneWidget);
+    });
+  });
+
+  group('checkbox', () {
+    semanticsTest('tapping it calls onToggleTask with that task', (tester) async {
+      final toggled = <int>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: TasksListView(
+            state: TasksListState(
+              lists: _lists,
+              activeTab: const ListTab(1),
+              isLoading: false,
+              tasks: [_task(1, 'one'), _task(2, 'two')],
+            ),
+            onTabSelected: (_) {},
+            onToggleTask: (t) => toggled.add(t.id),
+          ),
+        ),
+      );
+
+      await tester.tap(find.bySemanticsLabel('two'));
+
+      expect(toggled, [2]);
+    });
+
+    semanticsTest('its tap target reaches the row edge and the row height, not just the circle', (tester) async {
+      final toggled = <int>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: TasksListView(
+            state: TasksListState(
+              lists: _lists,
+              activeTab: const ListTab(1),
+              isLoading: false,
+              tasks: [_task(1, 'one', at: DateTime(2026, 9, 21, 9))],
+            ),
+            onTabSelected: (_) {},
+            onToggleTask: (t) => toggled.add(t.id),
+          ),
+        ),
+      );
+      final row = tester.getRect(find.byType(TaskRow));
+
+      await tester.tapAt(row.topLeft + const Offset(4, 4));
+      await tester.tapAt(row.bottomLeft + const Offset(4, -4));
+
+      expect(toggled, [1, 1]);
+    });
+
+    semanticsTest('tapping the title or the reminder time does not toggle', (tester) async {
+      final toggled = <int>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: TasksListView(
+            state: TasksListState(
+              lists: _lists,
+              activeTab: const ListTab(1),
+              isLoading: false,
+              tasks: [_task(1, 'one', at: DateTime(2026, 9, 21, 9))],
+            ),
+            onTabSelected: (_) {},
+            onToggleTask: (t) => toggled.add(t.id),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('one'));
+      await tester.tap(find.textContaining('9:00'));
+
+      expect(toggled, isEmpty);
+    });
+
+    semanticsTest('is one control per row, named by the task and carrying its checked state', (tester) async {
+      await _pump(
+        tester,
+        TasksListState(
+          lists: _lists,
+          activeTab: const ListTab(1),
+          isLoading: false,
+          tasks: [_task(1, 'open'), _task(2, 'finished', done: true)],
+        ),
+      );
+
+      // One node per title: the checkbox, not the checkbox plus the text.
+      final open = tester.getSemantics(find.bySemanticsLabel('open'));
+      final finished = tester.getSemantics(find.bySemanticsLabel('finished'));
+      expect(open.flagsCollection.isChecked, CheckedState.isFalse);
+      expect(finished.flagsCollection.isChecked, CheckedState.isTrue);
+    });
+
+    semanticsTest('does nothing when there is no callback', (tester) async {
+      await _pump(
+        tester,
+        TasksListState(
+          lists: _lists,
+          activeTab: const ListTab(1),
+          isLoading: false,
+          tasks: [_task(1, 'open')],
+        ),
+      );
+
+      await tester.tap(find.bySemanticsLabel('open'));
+
+      expect(tester.takeException(), isNull);
     });
   });
 

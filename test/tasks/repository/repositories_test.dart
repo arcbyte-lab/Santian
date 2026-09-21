@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
+import 'package:santian/tasks/models/subtask.dart';
 import 'package:santian/tasks/models/task.dart';
 import 'package:santian/tasks/models/task_list.dart';
 import 'package:santian/tasks/repository/list_repository.dart';
@@ -44,6 +45,75 @@ void main() {
       final saved = (await isar.tasks.get(id))!;
       expect(saved.title, 'made');
       expect(saved.listId, 3);
+    });
+
+    group('toggleCompleted', () {
+      test('completes an incomplete Task', () async {
+        final id = await put(task(1, 'a'));
+
+        await tasks.toggleCompleted((await isar.tasks.get(id))!);
+
+        expect((await isar.tasks.get(id))!.isCompleted, isTrue);
+      });
+
+      test('restores a completed Task', () async {
+        final id = await put(task(1, 'a')..isCompleted = true);
+
+        await tasks.toggleCompleted((await isar.tasks.get(id))!);
+
+        expect((await isar.tasks.get(id))!.isCompleted, isFalse);
+      });
+
+      test('flips what is stored, so a second toggle undoes the first', () async {
+        final stale = task(1, 'a');
+        stale.id = await put(stale);
+
+        await tasks.toggleCompleted(stale);
+        await tasks.toggleCompleted(stale);
+
+        expect((await isar.tasks.get(stale.id))!.isCompleted, isFalse);
+      });
+
+      test('changes nothing but completion', () async {
+        final id = await put(task(1, 'a', starred: true)
+          ..description = 'notes'
+          ..reminderAt = DateTime(2026, 9, 21, 9)
+          ..deadline = DateTime(2026, 9, 22)
+          ..subtasks = [Subtask()..title = 'sub'..order = 0]);
+
+        await tasks.toggleCompleted((await isar.tasks.get(id))!);
+
+        final saved = (await isar.tasks.get(id))!;
+        expect(saved.title, 'a');
+        expect(saved.listId, 1);
+        expect(saved.isStarred, isTrue);
+        expect(saved.description, 'notes');
+        expect(saved.reminderAt, DateTime(2026, 9, 21, 9));
+        expect(saved.deadline, DateTime(2026, 9, 22));
+        expect(saved.subtasks.single.title, 'sub');
+        expect(saved.subtasks.single.isCompleted, isFalse);
+      });
+
+      test('a Task that no longer exists is ignored', () async {
+        final gone = task(1, 'gone')..id = 999;
+
+        await tasks.toggleCompleted(gone);
+
+        expect(await isar.tasks.count(), 0);
+      });
+
+      test('reaches a live watch of its List', () async {
+        final id = await put(task(1, 'a'));
+        final stream = tasks.watchByList(1).asBroadcastStream();
+        await stream.firstWhere((t) => t.length == 1).timeout(const Duration(seconds: 5));
+
+        await tasks.toggleCompleted((await isar.tasks.get(id))!);
+
+        final done = await stream
+            .firstWhere((t) => t.single.isCompleted)
+            .timeout(const Duration(seconds: 5));
+        expect(done.single.title, 'a');
+      });
     });
 
     test('a created Task reaches a live watch of its List', () async {
