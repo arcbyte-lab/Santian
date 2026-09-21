@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # Generated Isar code is committed. Regenerate and fail if it drifted.
+      - run: dart run build_runner build
+      - run: git diff --exit-code -- '*.g.dart'
+
+      - run: flutter analyze
+      - run: flutter test
