@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned so a new Flutter/Dart release can't break CI, or change the
+      # generated code and trip the drift check, on an unrelated change.
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.41.4
+          cache: true
+
+      - run: flutter pub get
+
+      # The Isar tests load a native library. Isar's own downloader fetches it
+      # with no integrity check, so fetch it here and verify the SHA-256 that
+      # GitHub publishes for the 3.3.2 release asset. The tests skip their
+      # download when CI is set, so a wrong path fails instead of downloading.
+      # Update this hash together with the isar_community version in pubspec.yaml.
+      - name: Fetch and verify the Isar native library
+        run: |
+          curl -fsSL -o libisar.so https://github.com/isar-community/isar-community/releases/download/3.3.2/libisar_linux_x64.so
+          echo "142421fbcc62a1fbd613e7217764678a1ae32f0cc77848a55cb8731baf251259  libisar.so" | sha256sum -c -
+
+      # Generated Isar code is committed. Regenerate and fail if it drifted.
+      - run: dart run build_runner build
+      - run: git diff --exit-code -- '*.g.dart'
+
+      - run: flutter analyze
+      - run: flutter test
