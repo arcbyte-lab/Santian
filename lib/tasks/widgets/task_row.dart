@@ -4,15 +4,19 @@ import '../../core/theme/app_colors.dart';
 import '../models/task.dart';
 
 /// One Task on the Tasks List: a circular checkbox, the title, and the
-/// reminder time when there is one. The checkbox calls [onToggle]; the rest of
-/// the row does nothing until Task Detail exists.
+/// reminder time when there is one. The checkbox calls [onToggle]; tapping
+/// anywhere else on the row calls [onOpenDetail].
 class TaskRow extends StatelessWidget {
-  const TaskRow({super.key, required this.task, this.onToggle});
+  const TaskRow({super.key, required this.task, this.onToggle, this.onOpenDetail});
 
   final Task task;
 
   /// Called when the checkbox is tapped. Null leaves it inert.
   final VoidCallback? onToggle;
+
+  /// Called when the row is tapped outside the checkbox zone. Null leaves
+  /// that area inert.
+  final VoidCallback? onOpenDetail;
 
   /// The checkbox's tap target: the row's left edge up to the title, over the
   /// row's full height. The drawn circle is only 21 wide.
@@ -27,39 +31,43 @@ class TaskRow extends StatelessWidget {
 
     return Stack(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          child: Row(
-            children: [
-              _CheckCircle(completed: done),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ExcludeSemantics(
-                      child: Text(
-                        task.title,
-                        style: theme.textTheme.bodyMedium!.copyWith(
-                          fontSize: 15,
-                          color: done ? muted : theme.colorScheme.onSurface,
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onOpenDetail,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            child: Row(
+              children: [
+                _CheckCircle(completed: done),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ExcludeSemantics(
+                        child: Text(
+                          task.title,
+                          style: theme.textTheme.bodyMedium!.copyWith(
+                            fontSize: 15,
+                            color: done ? muted : theme.colorScheme.onSurface,
+                          ),
                         ),
                       ),
-                    ),
-                    if (reminder != null) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        TimeOfDay.fromDateTime(reminder).format(context),
-                        style: theme.textTheme.bodySmall!.copyWith(
-                          fontSize: 12,
-                          color: muted,
+                      if (reminder != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          TimeOfDay.fromDateTime(reminder).format(context),
+                          style: theme.textTheme.bodySmall!.copyWith(
+                            fontSize: 12,
+                            color: muted,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         Positioned(

@@ -163,6 +163,74 @@ void main() {
       }
     });
 
+    group('update', () {
+      test('persists every field of the given Task onto its stored record', () async {
+        final id = await put(task(1, 'a'));
+
+        await tasks.update(task(2, 'b', starred: true)
+          ..id = id
+          ..description = 'notes'
+          ..isCompleted = true);
+
+        final saved = (await isar.tasks.get(id))!;
+        expect(saved.listId, 2);
+        expect(saved.title, 'b');
+        expect(saved.isStarred, isTrue);
+        expect(saved.description, 'notes');
+        expect(saved.isCompleted, isTrue);
+      });
+
+      test('reaches a live watch of its List', () async {
+        final id = await put(task(1, 'a'));
+        final stream = tasks.watchByList(2).asBroadcastStream();
+        await next(stream, (t) => t.isEmpty);
+
+        await tasks.update(task(2, 'moved')..id = id);
+
+        expect(await next(stream, (t) => t.isNotEmpty), ['moved']);
+      });
+    });
+
+    group('delete', () {
+      test('removes the Task', () async {
+        final id = await put(task(1, 'gone'));
+
+        await tasks.delete(id);
+
+        expect(await isar.tasks.get(id), isNull);
+      });
+
+      test('a Task restored afterwards with update keeps the same id', () async {
+        final original = task(1, 'restore me');
+        original.id = await put(original);
+
+        await tasks.delete(original.id);
+        expect(await isar.tasks.get(original.id), isNull);
+
+        await tasks.update(original);
+
+        final restored = await isar.tasks.get(original.id);
+        expect(restored, isNotNull);
+        expect(restored!.title, 'restore me');
+      });
+
+      test('a Task that no longer exists is ignored', () async {
+        await tasks.delete(999);
+
+        expect(await isar.tasks.count(), 0);
+      });
+
+      test('reaches a live watch of its List', () async {
+        final id = await put(task(1, 'a'));
+        final stream = tasks.watchByList(1).asBroadcastStream();
+        await next(stream, (t) => t.isNotEmpty);
+
+        await tasks.delete(id);
+
+        expect(await next(stream, (t) => t.isEmpty), isEmpty);
+      });
+    });
+
     test('a second watch still works after the first was cancelled', () async {
       final first = tasks.watchByList(1).listen((_) {});
       await pumpEventQueue();

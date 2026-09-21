@@ -15,6 +15,7 @@ class TasksListView extends StatelessWidget {
     required this.state,
     required this.onTabSelected,
     this.onToggleTask,
+    this.onOpenTask,
     this.onCreateTask,
   });
 
@@ -23,6 +24,10 @@ class TasksListView extends StatelessWidget {
 
   /// Called with a Task whose checkbox was tapped. Null leaves checkboxes inert.
   final ValueChanged<Task>? onToggleTask;
+
+  /// Called with a Task whose row was tapped outside the checkbox. Null
+  /// leaves that area inert.
+  final ValueChanged<Task>? onOpenTask;
 
   /// Called when the FAB is tapped. Null disables it.
   final VoidCallback? onCreateTask;
@@ -56,6 +61,9 @@ class TasksListView extends StatelessWidget {
                               onToggle: onToggleTask == null
                                   ? null
                                   : () => onToggleTask!(task),
+                              onOpenDetail: onOpenTask == null
+                                  ? null
+                                  : () => onOpenTask!(task),
                             );
                           },
                         ),

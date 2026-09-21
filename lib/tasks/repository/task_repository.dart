@@ -29,6 +29,16 @@ class TaskRepository {
   Future<int> create(Task task) =>
       _isar.writeTxn(() => _isar.tasks.put(task));
 
+  /// Persists every field of [task] onto the stored record with the same id.
+  /// Used for Task Detail's edits (title, description, star, list), and to
+  /// restore a deleted Task exactly, including its id, on undo.
+  Future<void> update(Task task) =>
+      _isar.writeTxn(() => _isar.tasks.put(task));
+
+  /// Removes the Task with [id]. Its Subtasks go with it: they are embedded,
+  /// so they have nowhere to exist once their parent Task is gone.
+  Future<void> delete(int id) => _isar.writeTxn(() => _isar.tasks.delete(id));
+
   /// Flips `isCompleted` on the stored Task with [task]'s id, for a
   /// non-repeating Task. Works on the stored record, not on [task], so a row
   /// that has gone stale cannot overwrite other edits. Does nothing if the
