@@ -10,10 +10,8 @@ import 'package:santian/core/theme/app_theme.dart';
 Future<ThemeData> _themeUnder(WidgetTester tester, Brightness brightness) async {
   tester.platformDispatcher.platformBrightnessTestValue = brightness;
   addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-  late ThemeData theme;
-  await tester.pumpWidget(const SantianApp());
-  theme = Theme.of(tester.element(find.byType(Scaffold)));
-  return theme;
+  await tester.pumpWidget(const SantianApp(home: Scaffold()));
+  return Theme.of(tester.element(find.byType(Scaffold)));
 }
 
 void main() {
