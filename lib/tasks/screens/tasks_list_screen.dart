@@ -6,6 +6,7 @@ import '../cubits/tasks_list_state.dart';
 import '../repository/list_repository.dart';
 import '../repository/task_repository.dart';
 import 'create_task_sheet.dart';
+import 'task_detail_sheet.dart';
 import 'tasks_list_view.dart';
 
 /// Wires [TasksListView] to a [TasksListCubit]. Needs a [TaskRepository] and a
@@ -27,6 +28,7 @@ class TasksListScreen extends StatelessWidget {
             state: state,
             onTabSelected: context.read<TasksListCubit>().selectTab,
             onToggleTask: context.read<TasksListCubit>().toggleCompleted,
+            onOpenTask: (task) => showTaskDetailSheet(context, task: task),
             onCreateTask: listId == null
                 ? null
                 : () => showCreateTaskSheet(context, listId: listId),
