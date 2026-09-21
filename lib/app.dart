@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 
+import 'core/theme/app_theme.dart';
+
 class SantianApp extends StatelessWidget {
   const SantianApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       title: 'Santian',
-      home: Scaffold(),
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      home: const Scaffold(),
     );
   }
 }
