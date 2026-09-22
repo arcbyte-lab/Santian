@@ -1,8 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../models/repeat.dart';
+import '../models/subtask.dart';
 import '../models/task.dart';
 import '../repository/task_repository.dart';
+import '../subtask_order.dart';
 
 class TaskDetailState {
   const TaskDetailState({required this.task, this.isDeleted = false});
@@ -25,7 +27,12 @@ Task _clone(Task task) => Task()
   ..repeat = task.repeat
   ..isStarred = task.isStarred
   ..isCompleted = task.isCompleted
-  ..subtasks = task.subtasks;
+  // Deep-copied, not just the same List reference: every other field here is
+  // a value type, but `subtasks` is a mutable embedded list, so sharing it
+  // between clones would let mutating one Subtask (add/edit/toggle/delete/
+  // reorder) silently leak back into whatever earlier state still holds this
+  // "clone".
+  ..subtasks = task.subtasks.map((s) => s.copyWith()).toList();
 
 /// State and actions for one open Task Detail sheet: star, list, title,
 /// description, completion, and delete. Every edit persists immediately via
@@ -66,6 +73,52 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
   /// Null clears the deadline, removing the chip.
   Future<void> setDeadline(DateTime? deadline) =>
       _edit((t) => t.deadline = deadline);
+
+  /// Appends a new Subtask after every existing one (by `order`). A blank
+  /// title is dropped rather than saved, same rule as [setTitle].
+  Future<void> addSubtask(String title) {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) return Future<void>.value();
+    return _edit((t) {
+      final sorted = sortSubtasksForDisplay(t.subtasks);
+      final nextOrder = sorted.isEmpty ? 0 : sorted.last.order + 1;
+      t.subtasks = [...t.subtasks, Subtask()..title = trimmed..order = nextOrder];
+    });
+  }
+
+  /// Saved on blur, like [setTitle] - and, like [setTitle], a blank result is
+  /// dropped rather than saved (a Subtask's title cannot go blank either).
+  Future<void> setSubtaskTitle(String id, String title) {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) return Future<void>.value();
+    return _edit((t) {
+      t.subtasks = [
+        for (final s in t.subtasks) s.id == id ? s.copyWith(title: trimmed) : s,
+      ];
+    });
+  }
+
+  /// Independent of the parent Task's own completion in both directions -
+  /// this never touches `t.isCompleted`, and [toggleCompleted] never touches
+  /// any Subtask.
+  Future<void> toggleSubtask(String id) => _edit((t) {
+        t.subtasks = [
+          for (final s in t.subtasks)
+            s.id == id ? s.copyWith(isCompleted: !s.isCompleted) : s,
+        ];
+      });
+
+  /// No undo - the spec doesn't ask for one here, unlike deleting the Task
+  /// itself.
+  Future<void> deleteSubtask(String id) =>
+      _edit((t) => t.subtasks = t.subtasks.where((s) => s.id != id).toList());
+
+  /// Applies a `ReorderableListView.onReorder` drag to the Subtasks and
+  /// rewrites every `order` to match - see [applySubtaskReorder] for the
+  /// index convention.
+  Future<void> reorderSubtasks(int oldIndex, int newIndex) => _edit(
+        (t) => t.subtasks = applySubtaskReorder(t.subtasks, oldIndex, newIndex),
+      );
 
   Future<void> _edit(void Function(Task) mutate) {
     final next = _clone(state.task);

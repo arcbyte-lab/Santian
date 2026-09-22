@@ -25,7 +25,10 @@ void main() {
 
     await h.openDetail('alpha');
 
-    expect(find.byType(TextField), findsNWidgets(2));
+    // Title, Description, and the Subtasks section's persistent "Add
+    // subtask(s)" input - see the next two tests for why Title is `.first`
+    // and Description is index 1, not `.last`.
+    expect(find.byType(TextField), findsNWidgets(3));
     expect(find.text('Mark completed'), findsOneWidget);
   });
 
@@ -51,7 +54,9 @@ void main() {
     await h.addTask('alpha');
 
     await h.openDetail('alpha');
-    await tester.enterText(find.byType(TextField).last, 'some notes');
+    // Index 1, not `.last`: the Subtasks section's own input is a TextField
+    // too, and sorts after Description in the tree.
+    await tester.enterText(find.byType(TextField).at(1), 'some notes');
     FocusManager.instance.primaryFocus?.unfocus();
     await h.settle();
 
