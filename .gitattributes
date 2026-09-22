@@ -1,0 +1,6 @@
+* text=auto
+
+# Shell scripts must keep LF line endings even on a Windows checkout with
+# core.autocrlf=true - CRLF breaks them (stray \r in comparisons, case
+# statements, etc.) when run under Git Bash.
+*.sh text eol=lf
