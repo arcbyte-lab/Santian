@@ -5,7 +5,9 @@ import '../../core/theme/app_radius.dart';
 import '../cubits/task_detail_cubit.dart';
 import '../deadline_status.dart';
 import '../models/repeat.dart';
+import '../models/subtask.dart';
 import '../models/task_list.dart';
+import '../subtask_order.dart';
 import '../widgets/date_time_picker_dialog.dart';
 import '../widgets/deadline_picker_dialog.dart';
 import '../widgets/list_selector_sheet.dart';
@@ -36,9 +38,8 @@ String _formatDeadlineChip(DateTime dt) =>
 
 /// Task Detail's content as a function of [state]: Top Bar (Back, Star,
 /// More), List Selector, Title, Description, the Deadline and Reminder
-/// fields, and the Mark Completed pill. Repeat and subtask rows are not
-/// built here — each later ticket adds its own row between Reminder and
-/// Mark Completed.
+/// fields, the Subtasks section, and the Mark Completed pill. Repeat has no
+/// row of its own - it's set from within the Reminder field's picker.
 class TaskDetailView extends StatefulWidget {
   const TaskDetailView({
     super.key,
@@ -51,6 +52,11 @@ class TaskDetailView extends StatefulWidget {
     required this.onDescriptionChanged,
     required this.onDeadlineChanged,
     required this.onReminderChanged,
+    required this.onAddSubtask,
+    required this.onSubtaskTitleChanged,
+    required this.onToggleSubtask,
+    required this.onDeleteSubtask,
+    required this.onReorderSubtasks,
     required this.onToggleCompleted,
     required this.onDelete,
   });
@@ -71,6 +77,14 @@ class TaskDetailView extends StatefulWidget {
   /// Null clears the reminder, removing the chip. Clearing also clears
   /// `repeat` — a repeat set with no `reminderAt` has nothing to advance.
   final void Function(DateTime? dateTime, {Repeat? repeat}) onReminderChanged;
+
+  final ValueChanged<String> onAddSubtask;
+
+  /// Called on blur, once editing that Subtask's title stops.
+  final void Function(String id, String title) onSubtaskTitleChanged;
+  final ValueChanged<String> onToggleSubtask;
+  final ValueChanged<String> onDeleteSubtask;
+  final void Function(int oldIndex, int newIndex) onReorderSubtasks;
 
   final VoidCallback onToggleCompleted;
   final VoidCallback onDelete;
@@ -289,6 +303,17 @@ class _TaskDetailViewState extends State<TaskDetailView> {
             reminderAt: task.reminderAt,
             onTap: () => _pickReminder(context),
             onClear: () => widget.onReminderChanged(null),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(28, 0, 28, 14),
+          child: _SubtasksSection(
+            subtasks: task.subtasks,
+            onAdd: widget.onAddSubtask,
+            onTitleChanged: widget.onSubtaskTitleChanged,
+            onToggle: widget.onToggleSubtask,
+            onDelete: widget.onDeleteSubtask,
+            onReorder: widget.onReorderSubtasks,
           ),
         ),
         const SizedBox(height: 8),
@@ -558,6 +583,260 @@ class _MarkCompletedPill extends StatelessWidget {
               fontSize: 14,
               color: completed ? mutedForeground : scheme.onPrimary,
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Add subtasks" (no Subtask exists yet) until the first one is created,
+/// then "Add subtask" (singular) as a persistent row at the bottom of the
+/// list — both states are the same always-editable inline TextField, per
+/// TaskDetailView.onAddSubtask's doc: there is no separate "tap to reveal an
+/// input" step, matching how Title and Description already work.
+///
+/// Reordering uses a ReorderableListView nested (shrinkWrap, non-scrolling)
+/// inside Task Detail's own outer Column — the whole sheet scrolls as one
+/// unit, the same way it already does around Title/Description/the pickers.
+class _SubtasksSection extends StatefulWidget {
+  const _SubtasksSection({
+    required this.subtasks,
+    required this.onAdd,
+    required this.onTitleChanged,
+    required this.onToggle,
+    required this.onDelete,
+    required this.onReorder,
+  });
+
+  final List<Subtask> subtasks;
+  final ValueChanged<String> onAdd;
+  final void Function(String id, String title) onTitleChanged;
+  final ValueChanged<String> onToggle;
+  final ValueChanged<String> onDelete;
+  final void Function(int oldIndex, int newIndex) onReorder;
+
+  @override
+  State<_SubtasksSection> createState() => _SubtasksSectionState();
+}
+
+class _SubtasksSectionState extends State<_SubtasksSection> {
+  final _input = TextEditingController();
+  final _inputFocus = FocusNode();
+
+  void _submit() {
+    final text = _input.text;
+    if (text.trim().isEmpty) return;
+    widget.onAdd(text);
+    _input.clear();
+    // Enter creates the Subtask and opens another empty input right below it
+    // (the spec's phrasing) — in practice this one persistent field, cleared
+    // and re-focused, since a freshly-added row would otherwise steal focus.
+    _inputFocus.requestFocus();
+  }
+
+  @override
+  void dispose() {
+    _input.dispose();
+    _inputFocus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.extension<AppColors>()!.mutedForeground;
+    final sorted = sortSubtasksForDisplay(widget.subtasks);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (sorted.isNotEmpty)
+          ReorderableListView(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            buildDefaultDragHandles: false,
+            onReorder: widget.onReorder,
+            children: [
+              for (var i = 0; i < sorted.length; i++)
+                _SubtaskRow(
+                  key: ValueKey(sorted[i].id),
+                  index: i,
+                  subtask: sorted[i],
+                  onTitleChanged: widget.onTitleChanged,
+                  onToggle: widget.onToggle,
+                  onDelete: widget.onDelete,
+                ),
+            ],
+          ),
+        Row(
+          children: [
+            Icon(Icons.checklist, size: 20, color: muted),
+            const SizedBox(width: 16),
+            Expanded(
+              child: TextField(
+                // A stable key, not the hint text, is what tests locate this
+                // field by - the hint itself switches ("Add subtasks" ->
+                // "Add subtask") the moment the first one is created.
+                key: const Key('subtask-input'),
+                controller: _input,
+                focusNode: _inputFocus,
+                textInputAction: TextInputAction.done,
+                textCapitalization: TextCapitalization.sentences,
+                onSubmitted: (_) => _submit(),
+                style: theme.textTheme.bodyMedium!
+                    .copyWith(fontSize: 15, color: theme.colorScheme.onSurface),
+                decoration: InputDecoration.collapsed(
+                  hintText: sorted.isEmpty ? 'Add subtasks' : 'Add subtask',
+                  hintStyle:
+                      theme.textTheme.bodyMedium!.copyWith(fontSize: 15, color: muted),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// One Subtask row: a small checkbox, a tap-to-edit title (saved on blur,
+/// same pattern as Task Detail's own Title/Description), an inline delete
+/// icon, and a drag handle. [index] is this row's position in the
+/// ReorderableListView that owns it — required by ReorderableDragStartListener,
+/// not the Subtask's own `order` (the two agree in the display-sorted list
+/// this row is always built from, but the listener wants "position", not
+/// "order value").
+class _SubtaskRow extends StatefulWidget {
+  const _SubtaskRow({
+    required super.key,
+    required this.index,
+    required this.subtask,
+    required this.onTitleChanged,
+    required this.onToggle,
+    required this.onDelete,
+  });
+
+  final int index;
+  final Subtask subtask;
+  final void Function(String id, String title) onTitleChanged;
+  final ValueChanged<String> onToggle;
+  final ValueChanged<String> onDelete;
+
+  @override
+  State<_SubtaskRow> createState() => _SubtaskRowState();
+}
+
+class _SubtaskRowState extends State<_SubtaskRow> {
+  late final _title = TextEditingController(text: widget.subtask.title);
+  final _titleFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _titleFocus.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (!_titleFocus.hasFocus) {
+      widget.onTitleChanged(widget.subtask.id, _title.text);
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleFocus.removeListener(_onFocusChange);
+    _title.dispose();
+    _titleFocus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.extension<AppColors>()!.mutedForeground;
+    final subtask = widget.subtask;
+
+    return Padding(
+      key: widget.key,
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          _SubtaskCheck(
+            completed: subtask.isCompleted,
+            onTap: () => widget.onToggle(subtask.id),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              controller: _title,
+              focusNode: _titleFocus,
+              textCapitalization: TextCapitalization.sentences,
+              style: theme.textTheme.bodyMedium!.copyWith(
+                fontSize: 15,
+                color: subtask.isCompleted ? muted : theme.colorScheme.onSurface,
+                decoration: subtask.isCompleted ? TextDecoration.lineThrough : null,
+              ),
+              decoration: const InputDecoration.collapsed(hintText: ''),
+            ),
+          ),
+          Semantics(
+            button: true,
+            label: 'Delete subtask',
+            excludeSemantics: true,
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () => widget.onDelete(subtask.id),
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: Icon(Icons.close, size: 16, color: muted),
+              ),
+            ),
+          ),
+          ReorderableDragStartListener(
+            index: widget.index,
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: Icon(Icons.drag_indicator, size: 18, color: muted),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A Subtask's own checkbox: about 16x16, half the Task row's 21x21
+/// _CheckCircle — a reasoned default, not confirmed by the owner (the
+/// spec's mockup never draws a populated Subtask).
+class _SubtaskCheck extends StatelessWidget {
+  const _SubtaskCheck({required this.completed, required this.onTap});
+
+  final bool completed;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      button: true,
+      checked: completed,
+      label: 'Subtask',
+      excludeSemantics: true,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Container(
+            width: 16,
+            height: 16,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: completed ? scheme.primary : null,
+              border: completed ? null : Border.all(color: scheme.outline, width: 1.2),
+            ),
+            child: completed ? Icon(Icons.check, size: 11, color: scheme.onPrimary) : null,
           ),
         ),
       ),
