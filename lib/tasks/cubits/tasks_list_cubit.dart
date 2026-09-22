@@ -14,13 +14,20 @@ class TasksListCubit extends Cubit<TasksListState> {
     required TaskRepository tasks,
     required ListRepository lists,
   })  : _tasks = tasks,
+        _lists = lists,
         super(const TasksListState()) {
     _listsSub = lists.watchAll().listen(_onLists);
   }
 
   final TaskRepository _tasks;
+  final ListRepository _lists;
   StreamSubscription<List<TaskList>>? _listsSub;
   StreamSubscription<List<Task>>? _tasksSub;
+
+  /// Set the moment a first-launch default List is requested, so a second
+  /// empty emission arriving before Isar's own write notification comes back
+  /// (the two are both async) can't fire a second one.
+  bool _creatingDefaultList = false;
 
   void selectTab(TasksTab tab) {
     if (tab == state.activeTab) return;
@@ -52,10 +59,15 @@ class TasksListCubit extends Cubit<TasksListState> {
 
     // Opened fresh (or the active List vanished): the first List, if any.
     if (lists.isEmpty) {
+      if (!_creatingDefaultList) {
+        _creatingDefaultList = true;
+        _lists.createDefault();
+      }
       _tasksSub?.cancel();
       _tasksSub = null;
       emit(TasksListState(lists: lists, isLoading: false));
     } else {
+      _creatingDefaultList = false;
       _activate(ListTab(lists.first.id), lists: lists);
     }
   }

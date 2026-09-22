@@ -13,11 +13,18 @@ class ListTabBar extends StatelessWidget {
     required this.lists,
     required this.activeTab,
     required this.onSelected,
+    this.onAddList,
   });
 
   final List<TaskList> lists;
   final TasksTab? activeTab;
   final ValueChanged<TasksTab> onSelected;
+
+  /// Called when the trailing `+` tab is tapped. Null hides it - there is no
+  /// List Repository to create into yet (shouldn't happen outside a test
+  /// harness missing one, since [ListRepository.createDefault] means a real
+  /// app is never without at least one List).
+  final VoidCallback? onAddList;
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +47,16 @@ class ListTabBar extends StatelessWidget {
               label: list.name,
               active: activeTab == ListTab(list.id),
               onTap: () => onSelected(ListTab(list.id)),
+            ),
+          ],
+          if (onAddList != null) ...[
+            const SizedBox(width: 24),
+            _Tab(
+              semanticLabel: 'Add list',
+              icon: Icons.add,
+              // Never the active tab itself - it opens a sheet, not a view.
+              active: false,
+              onTap: onAddList!,
             ),
           ],
         ],

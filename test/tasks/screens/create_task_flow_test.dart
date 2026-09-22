@@ -8,7 +8,9 @@ import '../../support/tasks_screen_harness.dart';
 
 extension on TasksScreenHarness {
   Future<void> openSheet() async {
-    await tester.tap(find.byIcon(Icons.add));
+    // Not `find.byIcon(Icons.add)`: the tab bar's own "+" (add-list) tab uses
+    // the same icon and would make that finder ambiguous.
+    await tester.tap(find.bySemanticsLabel('Create task'));
     await tester.pumpAndSettle();
   }
 }
@@ -131,12 +133,25 @@ void main() {
     expect(await h.saved(), isEmpty);
   });
 
-  testWidgets('with no Lists the button does not open a sheet', (tester) async {
-    await TasksScreenHarness.start(tester, []);
+  testWidgets('starting with no Lists auto-creates a default one, and the '
+      'button creates a Task into it', (tester) async {
+    final h = await TasksScreenHarness.start(tester, []);
+    // The default List's creation and its becoming active are two separate
+    // reactive round trips through Isar's watch (empty -> [list] ->
+    // activated); `start`'s own single `settle()` isn't reliably enough
+    // margin for both, so the FAB can still be disabled right after it
+    // returns. One more settle gives the second round trip room to land.
+    await h.settle();
 
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pumpAndSettle();
+    await h.openSheet();
+    await tester.enterText(find.byType(TextField), 'First ever task');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await h.settle();
 
-    expect(find.byType(CreateTaskForm), findsNothing);
+    final task = (await h.saved()).single;
+    expect(task.title, 'First ever task');
+    final defaultList = (await tester.runAsync(() => h.isar.taskLists.where().findFirst()))!;
+    expect(defaultList.name, 'My Tasks');
+    expect(task.listId, defaultList.id);
   });
 }

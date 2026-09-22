@@ -337,5 +337,39 @@ void main() {
           .timeout(const Duration(seconds: 5));
       expect(three.map((l) => l.name), ['first', 'second', 'third']);
     });
+
+    test('create saves the List and returns its id', () async {
+      final id = await lists.create(TaskList()
+        ..name = 'Errands'
+        ..icon = 'rocket'
+        ..color = 0xFF0284C7);
+
+      expect(id, isNot(Isar.autoIncrement));
+      final saved = (await isar.taskLists.get(id))!;
+      expect(saved.name, 'Errands');
+      expect(saved.icon, 'rocket');
+      expect(saved.color, 0xFF0284C7);
+    });
+
+    test('create reaches a live watch of every List', () async {
+      final stream = lists.watchAll().asBroadcastStream();
+      await stream.firstWhere((l) => l.isEmpty).timeout(const Duration(seconds: 5));
+
+      await lists.create(TaskList()
+        ..name = 'live'
+        ..icon = 'rocket'
+        ..color = 1);
+
+      final after = await stream
+          .firstWhere((l) => l.isNotEmpty)
+          .timeout(const Duration(seconds: 5));
+      expect(after.single.name, 'live');
+    });
+
+    test('createDefault names it "My Tasks"', () async {
+      final id = await lists.createDefault();
+
+      expect((await isar.taskLists.get(id))!.name, 'My Tasks');
+    });
   });
 }
