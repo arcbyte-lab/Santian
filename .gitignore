@@ -52,3 +52,7 @@ app.*.map.json
 
 # Generated locally by Dart/Flutter DevTools
 /devtools_options.yaml
+
+# Screenshots/dumps from the run-santian skill's driver - regenerated per run
+/.claude/skills/run-santian/artifacts/*
+!/.claude/skills/run-santian/artifacts/.gitkeep
