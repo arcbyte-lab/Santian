@@ -9,6 +9,7 @@ import 'package:santian/tasks/repository/list_repository.dart';
 import 'package:santian/tasks/repository/task_repository.dart';
 import 'package:santian/tasks/screens/tasks_list_screen.dart';
 
+import 'fake_notification_service.dart';
 import 'test_isar.dart';
 
 /// The Tasks List screen wired to a real Isar: Cubit, repositories, the live
@@ -19,6 +20,7 @@ class TasksScreenHarness {
   final WidgetTester tester;
   final TestIsar db;
   Isar get isar => db.isar;
+  final notifications = FakeNotificationService();
 
   static Future<TasksScreenHarness> start(
     WidgetTester tester,
@@ -47,7 +49,7 @@ class TasksScreenHarness {
     await tester.pumpWidget(
       MultiRepositoryProvider(
         providers: [
-          RepositoryProvider(create: (_) => TaskRepository(db.isar)),
+          RepositoryProvider(create: (_) => TaskRepository(db.isar, notifications: h.notifications)),
           RepositoryProvider(create: (_) => ListRepository(db.isar)),
         ],
         child: const SantianApp(home: TasksListScreen()),

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
+import 'package:santian/core/notifications/task_notifications.dart';
 import 'package:santian/tasks/models/repeat.dart';
 import 'package:santian/tasks/models/subtask.dart';
 import 'package:santian/tasks/models/task.dart';
@@ -9,6 +10,7 @@ import 'package:santian/tasks/models/task_list.dart';
 import 'package:santian/tasks/repository/list_repository.dart';
 import 'package:santian/tasks/repository/task_repository.dart';
 
+import '../../support/fake_notification_service.dart';
 import '../../support/test_isar.dart';
 
 void main() {
@@ -16,6 +18,7 @@ void main() {
   late Isar isar;
   late TaskRepository tasks;
   late ListRepository lists;
+  late FakeNotificationService notifications;
 
   Future<int> put(Task task) => isar.writeTxn(() => isar.tasks.put(task));
 
@@ -32,7 +35,8 @@ void main() {
   setUp(() async {
     db = await TestIsar.open();
     isar = db.isar;
-    tasks = TaskRepository(isar);
+    notifications = FakeNotificationService();
+    tasks = TaskRepository(isar, notifications: notifications);
     lists = ListRepository(isar);
   });
 
@@ -302,6 +306,90 @@ void main() {
         await tasks.delete(id);
 
         expect(await next(stream, (t) => t.isEmpty), isEmpty);
+      });
+    });
+
+    group('notifications', () {
+      test('create with a reminder schedules the reminder id', () async {
+        final id = await tasks.create(task(1, 'a')..reminderAt = DateTime(2026, 9, 21, 9));
+
+        final call = notifications.scheduled.singleWhere((c) => c.id == reminderNotificationId(id));
+        expect(call.at, DateTime(2026, 9, 21, 9));
+        expect(call.title, 'a');
+      });
+
+      test('create with a deadline schedules the deadline id at 9am with a "Due today" body', () async {
+        final id = await tasks.create(task(1, 'a')..deadline = DateTime(2026, 9, 22));
+
+        final call = notifications.scheduled.singleWhere((c) => c.id == deadlineNotificationId(id));
+        expect(call.at, DateTime(2026, 9, 22, deadlineNotificationHour));
+        expect(call.body, 'Due today');
+      });
+
+      test('create with neither cancels both ids, since none was ever scheduled', () async {
+        final id = await tasks.create(task(1, 'a'));
+
+        expect(notifications.cancelled, [reminderNotificationId(id), deadlineNotificationId(id)]);
+      });
+
+      test('update clears a removed reminder by cancelling its id', () async {
+        final id = await tasks.create(task(1, 'a')..reminderAt = DateTime(2026, 9, 21, 9));
+        notifications.cancelled.clear();
+
+        await tasks.update(task(1, 'a')..id = id);
+
+        expect(notifications.cancelled, contains(reminderNotificationId(id)));
+      });
+
+      test('delete cancels both ids', () async {
+        final id = await tasks.create(task(1, 'a')
+          ..reminderAt = DateTime(2026, 9, 21, 9)
+          ..deadline = DateTime(2026, 9, 22));
+        notifications.cancelled.clear();
+
+        await tasks.delete(id);
+
+        expect(notifications.cancelled, [reminderNotificationId(id), deadlineNotificationId(id)]);
+      });
+
+      test('undoing a delete via update reschedules the same ids', () async {
+        final original = task(1, 'restore me')..reminderAt = DateTime(2026, 9, 21, 9);
+        original.id = await tasks.create(original);
+        await tasks.delete(original.id);
+        notifications.scheduled.clear();
+
+        await tasks.update(original);
+
+        expect(
+          notifications.scheduled.single.id,
+          reminderNotificationId(original.id),
+        );
+      });
+
+      test('completing a non-repeating Task cancels both ids', () async {
+        final id = await tasks.create(task(1, 'a')
+          ..reminderAt = DateTime(2026, 9, 21, 9)
+          ..deadline = DateTime(2026, 9, 22));
+        notifications.cancelled.clear();
+
+        await tasks.toggleCompleted((await isar.tasks.get(id))!);
+
+        expect(notifications.cancelled, [reminderNotificationId(id), deadlineNotificationId(id)]);
+      });
+
+      test('completing a repeating Task reschedules both ids to the next occurrence', () async {
+        final id = await tasks.create(task(1, 'daily')
+          ..reminderAt = DateTime(2026, 9, 21, 9)
+          ..deadline = DateTime(2026, 9, 21)
+          ..repeat = (Repeat()..frequency = RepeatFrequency.daily));
+        notifications.scheduled.clear();
+
+        await tasks.toggleCompleted((await isar.tasks.get(id))!);
+
+        final reminder = notifications.scheduled.singleWhere((c) => c.id == reminderNotificationId(id));
+        expect(reminder.at, DateTime(2026, 9, 22, 9));
+        final deadline = notifications.scheduled.singleWhere((c) => c.id == deadlineNotificationId(id));
+        expect(deadline.at, DateTime(2026, 9, 22, deadlineNotificationHour));
       });
     });
 
