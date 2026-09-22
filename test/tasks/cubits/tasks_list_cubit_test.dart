@@ -9,6 +9,7 @@ import 'package:santian/tasks/models/task_list.dart';
 import 'package:santian/tasks/repository/list_repository.dart';
 import 'package:santian/tasks/repository/task_repository.dart';
 
+import '../../support/fake_notification_service.dart';
 import '../../support/test_isar.dart';
 
 /// Resolves with the first state (the current one, or a later one) that
@@ -67,7 +68,10 @@ void main() {
           ));
 
   TasksListCubit newCubit() =>
-      TasksListCubit(tasks: TaskRepository(isar), lists: ListRepository(isar));
+      TasksListCubit(
+        tasks: TaskRepository(isar, notifications: FakeNotificationService()),
+        lists: ListRepository(isar),
+      );
 
   setUp(() async {
     db = await TestIsar.open();

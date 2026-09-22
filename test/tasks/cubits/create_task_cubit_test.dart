@@ -5,11 +5,12 @@ import 'package:santian/tasks/models/repeat.dart';
 import 'package:santian/tasks/models/task.dart';
 import 'package:santian/tasks/repository/task_repository.dart';
 
+import '../../support/fake_notification_service.dart';
 import '../../support/test_isar.dart';
 
 /// Fails its first save, then behaves normally.
 class _FlakyRepository extends TaskRepository {
-  _FlakyRepository(super.isar);
+  _FlakyRepository(super.isar) : super(notifications: FakeNotificationService());
 
   var failNext = true;
 
@@ -34,8 +35,10 @@ void main() {
 
   tearDown(() => db.close());
 
-  CreateTaskCubit cubit({int listId = 7, TaskRepository? repo}) =>
-      CreateTaskCubit(tasks: repo ?? TaskRepository(isar), listId: listId);
+  CreateTaskCubit cubit({int listId = 7, TaskRepository? repo}) => CreateTaskCubit(
+        tasks: repo ?? TaskRepository(isar, notifications: FakeNotificationService()),
+        listId: listId,
+      );
 
   Future<List<Task>> saved() => isar.tasks.where().findAll();
 

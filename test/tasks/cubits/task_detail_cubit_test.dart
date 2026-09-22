@@ -5,6 +5,7 @@ import 'package:santian/tasks/models/repeat.dart';
 import 'package:santian/tasks/models/task.dart';
 import 'package:santian/tasks/repository/task_repository.dart';
 
+import '../../support/fake_notification_service.dart';
 import '../../support/test_isar.dart';
 
 void main() {
@@ -15,7 +16,7 @@ void main() {
   setUp(() async {
     db = await TestIsar.open();
     isar = db.isar;
-    tasks = TaskRepository(isar);
+    tasks = TaskRepository(isar, notifications: FakeNotificationService());
   });
 
   tearDown(() => db.close());
