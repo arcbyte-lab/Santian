@@ -17,6 +17,7 @@ class SantianApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
       title: 'Santian',
       theme: AppTheme.light,
