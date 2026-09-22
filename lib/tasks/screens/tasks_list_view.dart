@@ -17,10 +17,14 @@ class TasksListView extends StatelessWidget {
     this.onToggleTask,
     this.onOpenTask,
     this.onCreateTask,
+    this.onAddList,
   });
 
   final TasksListState state;
   final ValueChanged<TasksTab> onTabSelected;
+
+  /// Called when the tab bar's trailing `+` tab is tapped. Null hides it.
+  final VoidCallback? onAddList;
 
   /// Called with a Task whose checkbox was tapped. Null leaves checkboxes inert.
   final ValueChanged<Task>? onToggleTask;
@@ -50,6 +54,7 @@ class TasksListView extends StatelessWidget {
                         lists: state.lists,
                         activeTab: state.activeTab,
                         onSelected: onTabSelected,
+                        onAddList: onAddList,
                       ),
                       Expanded(
                         child: ListView.builder(

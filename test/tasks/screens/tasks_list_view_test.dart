@@ -2,6 +2,7 @@ import 'dart:ui' show CheckedState;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:santian/core/theme/app_colors.dart';
 import 'package:santian/core/theme/app_theme.dart';
 import 'package:santian/tasks/cubits/tasks_list_state.dart';
@@ -37,6 +38,7 @@ Future<void> _pump(
   TasksListState state, {
   ValueChanged<TasksTab>? onTabSelected,
   VoidCallback? onCreateTask,
+  VoidCallback? onAddList,
   ThemeData? theme,
   ThemeData? darkTheme,
   ThemeMode themeMode = ThemeMode.light,
@@ -50,6 +52,7 @@ Future<void> _pump(
         state: state,
         onTabSelected: onTabSelected ?? (_) {},
         onCreateTask: onCreateTask,
+        onAddList: onAddList,
       ),
     ),
   );
@@ -84,8 +87,8 @@ void main() {
       expect(_styleOf(tester, 'Building').fontWeight, FontWeight.w400);
       expect(_styleOf(tester, 'Building').color, muted);
 
-      expect(tester.widget<Icon>(find.byIcon(Icons.directions_walk)).color, scheme.primary);
-      expect(tester.widget<Icon>(find.byIcon(Icons.hardware_outlined)).color, muted);
+      expect(tester.widget<Icon>(find.byIcon(LucideIcons.footprints)).color, scheme.primary);
+      expect(tester.widget<Icon>(find.byIcon(LucideIcons.hammer)).color, muted);
     });
 
     testWidgets('Star is the active tab when it is selected', (tester) async {
@@ -109,6 +112,29 @@ void main() {
       await tester.tap(find.text('My Tasks'));
 
       expect(selected, [const ListTab(3), const StarredTab(), const ListTab(2)]);
+    });
+
+    semanticsTest('with no onAddList there is no + tab', (tester) async {
+      await _pump(tester, TasksListState(lists: _lists, activeTab: const ListTab(1), isLoading: false));
+
+      expect(find.bySemanticsLabel('Add list'), findsNothing);
+    });
+
+    semanticsTest('the + tab is last, after every List, and reports a tap', (tester) async {
+      var taps = 0;
+      await _pump(
+        tester,
+        TasksListState(lists: _lists, activeTab: const ListTab(1), isLoading: false),
+        onAddList: () => taps++,
+      );
+
+      final addList = find.bySemanticsLabel('Add list');
+      expect(addList, findsOneWidget);
+      final last = tester.getTopLeft(find.text('Building')).dx;
+      expect(tester.getTopLeft(addList).dx, greaterThan(last));
+
+      await tester.tap(addList);
+      expect(taps, 1);
     });
 
     testWidgets('a long bar scrolls instead of overflowing', (tester) async {

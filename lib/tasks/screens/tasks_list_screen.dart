@@ -5,6 +5,7 @@ import '../cubits/tasks_list_cubit.dart';
 import '../cubits/tasks_list_state.dart';
 import '../repository/list_repository.dart';
 import '../repository/task_repository.dart';
+import 'create_list_sheet.dart';
 import 'create_task_sheet.dart';
 import 'task_detail_sheet.dart';
 import 'tasks_list_view.dart';
@@ -32,6 +33,13 @@ class TasksListScreen extends StatelessWidget {
             onCreateTask: listId == null
                 ? null
                 : () => showCreateTaskSheet(context, listId: listId),
+            onAddList: () async {
+              final id = await showCreateListSheet(context);
+              // The new tab is inserted before `+` and selected.
+              if (id != null && context.mounted) {
+                context.read<TasksListCubit>().selectTab(ListTab(id));
+              }
+            },
           );
         },
       ),

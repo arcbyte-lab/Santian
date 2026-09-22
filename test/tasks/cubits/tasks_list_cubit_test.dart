@@ -82,13 +82,13 @@ void main() {
   final nine = DateTime(2026, 9, 21, 9);
   final ten = DateTime(2026, 9, 21, 10);
 
-  test('with no Lists there is no active tab and nothing loading', () async {
+  test('with no Lists, a default one is created and made active', () async {
     cubit = newCubit();
 
-    final state = await until(cubit, (s) => !s.isLoading);
+    final state = await until(cubit, (s) => !s.isLoading && s.activeTab != null);
 
-    expect(state.lists, isEmpty);
-    expect(state.activeTab, isNull);
+    expect(state.lists.map((l) => l.name), ['My Tasks']);
+    expect(state.activeTab, ListTab(state.lists.single.id));
     expect(state.tasks, isEmpty);
   });
 
@@ -166,20 +166,6 @@ void main() {
     );
     expect(titles(afterComplete), ['added later', 'existing']);
     expect(afterComplete.tasks.last.isCompleted, isTrue);
-  });
-
-  test('a List created later becomes active when there was none', () async {
-    cubit = newCubit();
-    await until(cubit, (s) => !s.isLoading && s.lists.isEmpty);
-
-    final list = await addList('Personal Interest');
-    await addTask(list, 'first task');
-
-    final state = await until(
-      cubit,
-      (s) => s.activeTab == ListTab(list) && titles(s).length == 1,
-    );
-    expect(titles(state), ['first task']);
   });
 
   test('deleting the active List falls back to the first remaining one', () async {
@@ -292,12 +278,11 @@ void main() {
       expect(onStar.createListId, first);
     });
 
-    test('is null while there are no Lists', () async {
+    test('is null in the initial synchronous state, before any List - real '
+        'or the auto-created default - has loaded', () {
       cubit = newCubit();
 
-      final state = await until(cubit, (s) => !s.isLoading);
-
-      expect(state.createListId, isNull);
+      expect(cubit.state.createListId, isNull);
     });
   });
 }
