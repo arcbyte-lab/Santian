@@ -28,6 +28,14 @@ class TaskRepository {
         () => _isar.tasks.filter().listIdEqualTo(listId).findAll(),
       );
 
+  /// Every Task in every List. The Tasks List watches this once and derives
+  /// each tab from it, so the pages either side of the active one are ready
+  /// while a swipe drags them into view.
+  Stream<List<Task>> watchAll() => watchQuery(
+        _changes,
+        () => _isar.tasks.where().findAll(),
+      );
+
   Stream<List<Task>> watchStarred() => watchQuery(
         _changes,
         () => _isar.tasks.filter().isStarredEqualTo(true).findAll(),

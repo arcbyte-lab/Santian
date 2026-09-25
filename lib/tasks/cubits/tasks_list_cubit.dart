@@ -6,7 +6,6 @@ import '../models/task.dart';
 import '../models/task_list.dart';
 import '../repository/list_repository.dart';
 import '../repository/task_repository.dart';
-import '../task_order.dart';
 import 'tasks_list_state.dart';
 
 class TasksListCubit extends Cubit<TasksListState> {
@@ -17,6 +16,7 @@ class TasksListCubit extends Cubit<TasksListState> {
         _lists = lists,
         super(const TasksListState()) {
     _listsSub = lists.watchAll().listen(_onLists);
+    _tasksSub = tasks.watchAll().listen(_onTasks);
   }
 
   final TaskRepository _tasks;
@@ -34,8 +34,8 @@ class TasksListCubit extends Cubit<TasksListState> {
     _activate(tab, lists: state.lists);
   }
 
-  /// Flips [task]'s completion. The active tab's stream delivers the reordered
-  /// list, so there is nothing to emit here.
+  /// Flips [task]'s completion. The tasks stream delivers the change, so
+  /// there is nothing to emit here.
   Future<void> toggleCompleted(Task task) => _tasks.toggleCompleted(task);
 
   void _onLists(List<TaskList> lists) {
@@ -51,7 +51,7 @@ class TasksListCubit extends Cubit<TasksListState> {
         lists: lists,
         activeTab: active,
         lastListId: state.lastListId,
-        tasks: state.tasks,
+        allTasks: state.allTasks,
         isLoading: state.isLoading,
       ));
       return;
@@ -63,9 +63,11 @@ class TasksListCubit extends Cubit<TasksListState> {
         _creatingDefaultList = true;
         _lists.createDefault();
       }
-      _tasksSub?.cancel();
-      _tasksSub = null;
-      emit(TasksListState(lists: lists, isLoading: false));
+      emit(TasksListState(
+        lists: lists,
+        allTasks: state.allTasks,
+        isLoading: state.isLoading,
+      ));
     } else {
       _creatingDefaultList = false;
       _activate(ListTab(lists.first.id), lists: lists);
@@ -73,23 +75,23 @@ class TasksListCubit extends Cubit<TasksListState> {
   }
 
   void _activate(TasksTab tab, {required List<TaskList> lists}) {
-    _tasksSub?.cancel();
-    final lastListId = tab is ListTab ? tab.listId : state.lastListId;
-    emit(TasksListState(lists: lists, activeTab: tab, lastListId: lastListId));
+    emit(TasksListState(
+      lists: lists,
+      activeTab: tab,
+      lastListId: tab is ListTab ? tab.listId : state.lastListId,
+      allTasks: state.allTasks,
+      isLoading: state.isLoading,
+    ));
+  }
 
-    final stream = switch (tab) {
-      StarredTab() => _tasks.watchStarred(),
-      ListTab(:final listId) => _tasks.watchByList(listId),
-    };
-    _tasksSub = stream.listen((tasks) {
-      emit(TasksListState(
-        lists: state.lists,
-        activeTab: tab,
-        lastListId: lastListId,
-        tasks: sortTasksForDisplay(tasks),
-        isLoading: false,
-      ));
-    });
+  void _onTasks(List<Task> tasks) {
+    emit(TasksListState(
+      lists: state.lists,
+      activeTab: state.activeTab,
+      lastListId: state.lastListId,
+      allTasks: tasks,
+      isLoading: false,
+    ));
   }
 
   @override
