@@ -1,5 +1,6 @@
 import '../models/task.dart';
 import '../models/task_list.dart';
+import '../task_order.dart';
 
 /// Which tab of the List Tab Bar is active. Star is a filter over
 /// `Task.isStarred`, not a List, so it is its own case.
@@ -34,7 +35,7 @@ class TasksListState {
     this.lists = const [],
     this.activeTab,
     this.lastListId,
-    this.tasks = const [],
+    this.allTasks = const [],
     this.isLoading = true,
   });
 
@@ -47,8 +48,29 @@ class TasksListState {
   /// goes. Null until a List has been active.
   final int? lastListId;
 
-  /// The active tab's tasks, already in display order.
-  final List<Task> tasks;
+  /// Every Task in every List, in no particular order. Each tab's tasks are
+  /// derived from it by [tasksFor].
+  final List<Task> allTasks;
+
+  /// The tabs in tab-bar order: Star, then each List.
+  List<TasksTab> get tabs =>
+      [const StarredTab(), for (final l in lists) ListTab(l.id)];
+
+  /// [tab]'s tasks, in display order.
+  // ponytail: filters and sorts on every call; cache per tab if Lists grow
+  // large enough for page builds to show up in a profile.
+  List<Task> tasksFor(TasksTab tab) => sortTasksForDisplay(allTasks.where(
+        (t) => switch (tab) {
+          StarredTab() => t.isStarred,
+          ListTab(:final listId) => t.listId == listId,
+        },
+      ));
+
+  /// The active tab's tasks, in display order.
+  List<Task> get tasks => switch (activeTab) {
+        final tab? => tasksFor(tab),
+        null => const [],
+      };
 
   final bool isLoading;
 

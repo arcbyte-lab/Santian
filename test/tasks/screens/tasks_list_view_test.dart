@@ -10,6 +10,7 @@ import 'package:santian/tasks/models/task.dart';
 import 'package:santian/tasks/models/task_list.dart';
 import 'package:santian/tasks/screens/tasks_list_view.dart';
 import 'package:santian/tasks/widgets/create_task_fab.dart';
+import 'package:santian/tasks/widgets/list_tab_bar.dart';
 import 'package:santian/tasks/widgets/task_row.dart';
 
 import '../../support/tasks_screen_harness.dart' show semanticsTest;
@@ -83,7 +84,7 @@ void main() {
       final muted = AppTheme.light.extension<AppColors>()!.mutedForeground;
 
       expect(_styleOf(tester, 'My Tasks').fontWeight, FontWeight.w600);
-      expect(_styleOf(tester, 'My Tasks').color, scheme.onSurface);
+      expect(_styleOf(tester, 'My Tasks').color, scheme.primary);
       expect(_styleOf(tester, 'Building').fontWeight, FontWeight.w400);
       expect(_styleOf(tester, 'Building').color, muted);
 
@@ -112,6 +113,72 @@ void main() {
       await tester.tap(find.text('My Tasks'));
 
       expect(selected, [const ListTab(3), const StarredTab(), const ListTab(2)]);
+    });
+
+    testWidgets('swiping the list moves to the next or previous tab, stopping at the ends', (tester) async {
+      Future<List<TasksTab>> swipe(TasksTab from, double dx) async {
+        final selected = <TasksTab>[];
+        await _pump(
+          tester,
+          TasksListState(lists: _lists, activeTab: from, isLoading: false),
+          onTabSelected: selected.add,
+        );
+        await tester.pumpAndSettle(); // let the pages reach `from` first
+        await tester.fling(find.byType(PageView), Offset(dx, 0), 1000);
+        await tester.pumpAndSettle();
+        return selected;
+      }
+
+      expect(await swipe(const ListTab(2), -300), [const ListTab(3)]);
+      expect(await swipe(const ListTab(2), 300), [const ListTab(1)]);
+      expect(await swipe(const ListTab(1), 300), [const StarredTab()]);
+      expect(await swipe(const StarredTab(), 300), isEmpty);
+      expect(await swipe(const ListTab(3), -300), isEmpty);
+    });
+
+    testWidgets("dragging part-way shows the next tab's tasks beside the current ones", (tester) async {
+      await _pump(
+        tester,
+        TasksListState(
+          lists: _lists,
+          activeTab: const ListTab(1),
+          allTasks: [_task(1, 'in first'), _task(2, 'in second')..listId = 2],
+          isLoading: false,
+        ),
+      );
+
+      final gesture = await tester.startGesture(tester.getCenter(find.byType(PageView)));
+      await gesture.moveBy(const Offset(-20, 0)); // past touch slop; the drag starts here
+      await gesture.moveBy(const Offset(-150, 0));
+      await tester.pump();
+
+      expect(find.text('in first'), findsOneWidget);
+      expect(find.text('in second'), findsOneWidget);
+      await gesture.up();
+    });
+
+    testWidgets('dragging part-way slides the underline and tint toward the next tab', (tester) async {
+      await _pump(tester, TasksListState(lists: _lists, activeTab: const ListTab(1), isLoading: false));
+      await tester.pumpAndSettle(); // the underline appears once the tabs are measured
+      final underline = find.descendant(of: find.byType(ListTabBar), matching: find.byType(ColoredBox));
+      double underlineLeft() => tester.getTopLeft(underline).dx;
+      final rocket = tester.getTopLeft(find.byIcon(LucideIcons.rocket)).dx;
+      final footprints = tester.getTopLeft(find.byIcon(LucideIcons.footprints)).dx;
+      expect(underlineLeft(), rocket);
+
+      final gesture = await tester.startGesture(tester.getCenter(find.byType(PageView)));
+      await gesture.moveBy(const Offset(-20, 0)); // past touch slop; the drag starts here
+      await gesture.moveBy(const Offset(-150, 0));
+      await tester.pump();
+
+      expect(underlineLeft(), greaterThan(rocket));
+      expect(underlineLeft(), lessThan(footprints));
+      final scheme = AppTheme.light.colorScheme;
+      final muted = AppTheme.light.extension<AppColors>()!.mutedForeground;
+      final tint = _styleOf(tester, 'My Tasks').color;
+      expect(tint, isNot(muted));
+      expect(tint, isNot(scheme.primary));
+      await gesture.up();
     });
 
     semanticsTest('with no onAddList there is no + tab', (tester) async {
@@ -160,7 +227,7 @@ void main() {
           lists: _lists,
           activeTab: const ListTab(1),
           isLoading: false,
-          tasks: [_task(1, 'Morning workout', at: DateTime(2026, 9, 21, 7))],
+          allTasks: [_task(1, 'Morning workout', at: DateTime(2026, 9, 21, 7))],
         ),
       );
 
@@ -175,7 +242,7 @@ void main() {
           lists: _lists,
           activeTab: const ListTab(1),
           isLoading: false,
-          tasks: [_task(1, 'Plan the week')],
+          allTasks: [_task(1, 'Plan the week')],
         ),
       );
 
@@ -191,7 +258,7 @@ void main() {
           lists: _lists,
           activeTab: const ListTab(1),
           isLoading: false,
-          tasks: [_task(1, 'first'), _task(2, 'second'), _task(3, 'third')],
+          allTasks: [_task(1, 'first'), _task(2, 'second'), _task(3, 'third')],
         ),
       );
 
@@ -208,7 +275,7 @@ void main() {
           lists: _lists,
           activeTab: const ListTab(1),
           isLoading: false,
-          tasks: [_task(1, 'open'), _task(2, 'finished', done: true)],
+          allTasks: [_task(1, 'open'), _task(2, 'finished', done: true)],
         ),
       );
       final scheme = AppTheme.light.colorScheme;
@@ -231,7 +298,7 @@ void main() {
               lists: _lists,
               activeTab: const ListTab(1),
               isLoading: false,
-              tasks: [_task(1, 'one'), _task(2, 'two')],
+              allTasks: [_task(1, 'one'), _task(2, 'two')],
             ),
             onTabSelected: (_) {},
             onToggleTask: (t) => toggled.add(t.id),
@@ -254,7 +321,7 @@ void main() {
               lists: _lists,
               activeTab: const ListTab(1),
               isLoading: false,
-              tasks: [_task(1, 'one', at: DateTime(2026, 9, 21, 9))],
+              allTasks: [_task(1, 'one', at: DateTime(2026, 9, 21, 9))],
             ),
             onTabSelected: (_) {},
             onToggleTask: (t) => toggled.add(t.id),
@@ -279,7 +346,7 @@ void main() {
               lists: _lists,
               activeTab: const ListTab(1),
               isLoading: false,
-              tasks: [_task(1, 'one', at: DateTime(2026, 9, 21, 9))],
+              allTasks: [_task(1, 'one', at: DateTime(2026, 9, 21, 9))],
             ),
             onTabSelected: (_) {},
             onToggleTask: (t) => toggled.add(t.id),
@@ -300,7 +367,7 @@ void main() {
           lists: _lists,
           activeTab: const ListTab(1),
           isLoading: false,
-          tasks: [_task(1, 'open'), _task(2, 'finished', done: true)],
+          allTasks: [_task(1, 'open'), _task(2, 'finished', done: true)],
         ),
       );
 
@@ -318,7 +385,7 @@ void main() {
           lists: _lists,
           activeTab: const ListTab(1),
           isLoading: false,
-          tasks: [_task(1, 'open')],
+          allTasks: [_task(1, 'open')],
         ),
       );
 
@@ -379,7 +446,7 @@ void main() {
           lists: _lists,
           activeTab: const ListTab(1),
           isLoading: false,
-          tasks: [
+          allTasks: [
             _task(1, 'Morning workout', at: DateTime(2026, 9, 21, 7)),
             _task(2, 'finished', done: true),
           ],
@@ -392,4 +459,24 @@ void main() {
       expect(theme.brightness, mode == ThemeMode.dark ? Brightness.dark : Brightness.light);
     });
   }
+
+  group('empty state', () {
+    testWidgets('shows "No tasks for today" when the tab has no Tasks', (tester) async {
+      await _pump(tester, TasksListState(lists: _lists, activeTab: const ListTab(2), isLoading: false));
+
+      expect(find.text('No tasks for today'), findsOneWidget);
+    });
+
+    testWidgets('hidden while loading and when Tasks exist', (tester) async {
+      await _pump(tester, TasksListState(lists: _lists, activeTab: const ListTab(2)));
+      expect(find.text('No tasks for today'), findsNothing);
+
+      await _pump(
+        tester,
+        TasksListState(lists: _lists, activeTab: const ListTab(1), allTasks: [_task(1, 'Buy milk')], isLoading: false),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('No tasks for today'), findsNothing);
+    });
+  });
 }
