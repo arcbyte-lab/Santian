@@ -2,7 +2,7 @@
 /// `--radius` scale, so they are named constants rather than a scale.
 abstract final class AppRadius {
   /// Bottom sheets and the main panels.
-  static const double sheet = 58;
+  static const double sheet = 28;
 
   /// The `Mark Completed` pill.
   static const double pill = 100;

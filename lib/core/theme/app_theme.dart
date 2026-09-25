@@ -27,13 +27,13 @@ abstract final class AppTheme {
     colorScheme: const ColorScheme.dark(
       primary: Color(0xFFF97316),
       onPrimary: Color(0xFF0C0A09),
-      surface: Color(0xFF1C1917),
+      surface: Color(0xFF0C0A09),
       onSurface: Color(0xFFFAFAF9),
       error: Color(0xFFEF4444),
       onError: Color(0xFFFAFAF9),
       outline: Color(0xFF44403C),
     ),
-    background: const Color(0xFF0C0A09),
+    background: const Color(0xFF1C1917),
     appColors: AppColors.dark,
   );
 
@@ -51,7 +51,27 @@ abstract final class AppTheme {
       fontFamily: 'Inter',
       extensions: [appColors],
     );
-    final text = base.textTheme;
+    // Tight tracking on every style; raw TextStyles inherit it via DefaultTextStyle.
+    const tight = TextStyle(letterSpacing: -.8);
+    final text = base.textTheme.merge(
+      const TextTheme(
+        displayLarge: tight,
+        displayMedium: tight,
+        displaySmall: tight,
+        headlineLarge: tight,
+        headlineMedium: tight,
+        headlineSmall: tight,
+        titleLarge: tight,
+        titleMedium: tight,
+        titleSmall: tight,
+        bodyLarge: tight,
+        bodyMedium: tight,
+        bodySmall: tight,
+        labelLarge: tight,
+        labelMedium: tight,
+        labelSmall: tight,
+      ),
+    );
     return base.copyWith(
       textTheme: text.copyWith(
         titleLarge: text.titleLarge?.copyWith(fontFamily: 'DMSans'),

@@ -50,6 +50,7 @@ class TasksListView extends StatelessWidget {
                 children: [
                   Column(
                     children: [
+                      RootCardLabel(text: "Tasks"),
                       ListTabBar(
                         lists: state.lists,
                         activeTab: state.activeTab,
@@ -84,6 +85,25 @@ class TasksListView extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class RootCardLabel extends StatelessWidget {
+  const RootCardLabel({super.key, required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.titleLarge!.copyWith(
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
