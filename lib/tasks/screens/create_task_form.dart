@@ -46,7 +46,8 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
       initial: widget.state.reminderAt,
       initialRepeat: widget.state.repeat,
     );
-    if (picked != null) widget.onReminderChanged(picked.dateTime, picked.repeat);
+    if (picked != null)
+      widget.onReminderChanged(picked.dateTime, picked.repeat);
   }
 
   @override
@@ -94,18 +95,6 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
         const SizedBox(height: 16),
         Row(
           children: [
-            Container(
-              width: 21,
-              height: 21,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: state.title.isEmpty ? scheme.outline : scheme.primary,
-                  width: 1.5,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
             Expanded(
               child: TextField(
                 controller: _title,
@@ -116,12 +105,16 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
                 // Providing this keeps the keyboard open when the title is
                 // empty; Done on a blank title is a no-op, not a dismissal.
                 onEditingComplete: widget.onSubmit,
-                style: theme.textTheme.bodyMedium!
-                    .copyWith(fontSize: 16, color: scheme.onSurface),
+                style: theme.textTheme.bodyMedium!.copyWith(
+                  fontSize: 16,
+                  color: scheme.onSurface,
+                ),
                 decoration: InputDecoration.collapsed(
                   hintText: 'What needs to be done?',
-                  hintStyle: theme.textTheme.bodyMedium!
-                      .copyWith(fontSize: 16, color: hint),
+                  hintStyle: theme.textTheme.bodyMedium!.copyWith(
+                    fontSize: 16,
+                    color: hint,
+                  ),
                 ),
               ),
             ),
@@ -135,37 +128,41 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
             maxLines: null,
             textCapitalization: TextCapitalization.sentences,
             onChanged: widget.onNotesChanged,
-            style: theme.textTheme.bodyMedium!
-                .copyWith(fontSize: 14, color: scheme.onSurface),
+            style: theme.textTheme.bodyMedium!.copyWith(
+              fontSize: 14,
+              color: scheme.onSurface,
+            ),
             decoration: InputDecoration.collapsed(
               hintText: 'Add details',
-              hintStyle:
-                  theme.textTheme.bodyMedium!.copyWith(fontSize: 14, color: hint),
+              hintStyle: theme.textTheme.bodyMedium!.copyWith(
+                fontSize: 14,
+                color: hint,
+              ),
             ),
           ),
         ],
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         Row(
           children: [
             _ActionIcon(
               icon: Icons.notes,
-              size: 16,
+              size: 24,
               label: 'Add details',
               active: state.notesVisible,
               onTap: widget.onToggleNotes,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 16),
             _ActionIcon(
               icon: Icons.schedule,
-              size: 16,
+              size: 24,
               label: 'Set date and time',
               active: state.reminderAt != null,
               onTap: () => _pickReminder(context),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 16),
             _ActionIcon(
               icon: state.isStarred ? Icons.star : Icons.star_border,
-              size: 17,
+              size: 24,
               label: 'Star',
               active: state.isStarred,
               onTap: widget.onToggleStar,
@@ -200,12 +197,11 @@ class _ActionIcon extends StatelessWidget {
     final theme = Theme.of(context);
     final muted = theme.extension<AppColors>()!.mutedForeground;
     final primary = theme.colorScheme.primary;
-    final radius = BorderRadius.circular(AppRadius.actionPill);
     final color = active
         ? primary
         : onTap == null
-            ? muted.withValues(alpha: 0.5)
-            : muted;
+        ? muted.withValues(alpha: 0.5)
+        : muted;
 
     return Semantics(
       button: true,
@@ -213,21 +209,11 @@ class _ActionIcon extends StatelessWidget {
       selected: active,
       label: label,
       excludeSemantics: true,
-      child: InkWell(
-        borderRadius: radius,
+      child: GestureDetector(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(6),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: active ? primary.withValues(alpha: 0.1) : null,
-              borderRadius: radius,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-              child: Icon(icon, size: size, color: color),
-            ),
-          ),
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Icon(icon, size: size, color: color),
         ),
       ),
     );

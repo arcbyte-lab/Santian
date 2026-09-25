@@ -10,7 +10,7 @@ abstract final class AppRadius {
   /// The reminder and deadline chips.
   static const double chip = 20;
 
-  static const double fab = 26;
+  static const double fab = 15;
 
   /// The date/time and deadline picker dialogs.
   static const double dialog = 24;
