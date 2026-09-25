@@ -86,84 +86,88 @@ class _DateTimePickerDialogState extends State<DateTimePickerDialog> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.dialog),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          MonthGrid(
-            selectedDate: _date,
-            onDateSelected: (date) => setState(() => _date = date),
-          ),
-          Divider(height: 1, color: theme.colorScheme.outline),
-          InkWell(
-            onTap: _pickTime,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      // Scrollable because it opens while the Create Task sheet's keyboard is
+      // still on screen, which squeezes the dialog until the keyboard closes.
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            MonthGrid(
+              selectedDate: _date,
+              onDateSelected: (date) => setState(() => _date = date),
+            ),
+            Divider(height: 1, color: theme.colorScheme.outline),
+            InkWell(
+              onTap: _pickTime,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Row(
+                  children: [
+                    Icon(Icons.schedule, size: 20, color: muted),
+                    const SizedBox(width: 16),
+                    Text(
+                      time == null ? 'Set time' : time.format(context),
+                      style: theme.textTheme.bodyMedium!.copyWith(
+                        fontSize: 15,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Divider(height: 1, color: theme.colorScheme.outline),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
                 children: [
-                  Icon(Icons.schedule, size: 20, color: muted),
-                  const SizedBox(width: 16),
-                  Text(
-                    time == null ? 'Set time' : time.format(context),
-                    style: theme.textTheme.bodyMedium!.copyWith(
-                      fontSize: 15,
-                      color: scheme.onSurface,
+                  Expanded(
+                    child: InkWell(
+                      onTap: _pickRepeat,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            Icon(Icons.repeat, size: 20, color: muted),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                _repeat == null ? 'Repeat' : summarizeRepeat(_repeat!),
+                                style: theme.textTheme.bodyMedium!.copyWith(
+                                  fontSize: 15,
+                                  color: scheme.onSurface,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
+                  if (_repeat != null)
+                    Semantics(
+                      button: true,
+                      label: 'Remove repeat',
+                      excludeSemantics: true,
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () => setState(() => _repeat = null),
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: Icon(Icons.close, size: 16, color: muted),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
-          ),
-          Divider(height: 1, color: theme.colorScheme.outline),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: _pickRepeat,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Row(
-                        children: [
-                          Icon(Icons.repeat, size: 20, color: muted),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Text(
-                              _repeat == null ? 'Repeat' : summarizeRepeat(_repeat!),
-                              style: theme.textTheme.bodyMedium!.copyWith(
-                                fontSize: 15,
-                                color: scheme.onSurface,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                if (_repeat != null)
-                  Semantics(
-                    button: true,
-                    label: 'Remove repeat',
-                    excludeSemantics: true,
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: () => setState(() => _repeat = null),
-                      child: Padding(
-                        padding: const EdgeInsets.all(4),
-                        child: Icon(Icons.close, size: 16, color: muted),
-                      ),
-                    ),
-                  ),
-              ],
+            Divider(height: 1, color: theme.colorScheme.outline),
+            PickerButtonRow(
+              onCancel: () => Navigator.of(context).pop(),
+              onDone: _done,
             ),
-          ),
-          Divider(height: 1, color: theme.colorScheme.outline),
-          PickerButtonRow(
-            onCancel: () => Navigator.of(context).pop(),
-            onDone: _done,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
