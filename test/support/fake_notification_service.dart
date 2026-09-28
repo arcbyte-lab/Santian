@@ -9,7 +9,12 @@ class FakeNotificationService implements NotificationService {
   final List<int> cancelled = [];
 
   @override
-  Future<void> schedule(int id, {required DateTime at, required String title, String? body}) async {
+  Future<void> schedule(
+    int id, {
+    required DateTime at,
+    required String title,
+    String? body,
+  }) async {
     scheduled.add(ScheduledCall(id: id, at: at, title: title, body: body));
   }
 
@@ -20,7 +25,12 @@ class FakeNotificationService implements NotificationService {
 }
 
 class ScheduledCall {
-  const ScheduledCall({required this.id, required this.at, required this.title, this.body});
+  const ScheduledCall({
+    required this.id,
+    required this.at,
+    required this.title,
+    this.body,
+  });
 
   final int id;
   final DateTime at;

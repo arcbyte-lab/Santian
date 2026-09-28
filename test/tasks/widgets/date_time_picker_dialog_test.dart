@@ -28,11 +28,13 @@ class _Host extends StatelessWidget {
         body: Builder(
           builder: (context) => ElevatedButton(
             onPressed: () async {
-              onOpen(await showDateTimePickerDialog(
-                context,
-                initial: initial,
-                initialRepeat: initialRepeat,
-              ));
+              onOpen(
+                await showDateTimePickerDialog(
+                  context,
+                  initial: initial,
+                  initialRepeat: initialRepeat,
+                ),
+              );
             },
             child: const Text('open'),
           ),
@@ -56,10 +58,9 @@ DateTime _today() {
 void main() {
   testWidgets('Cancel discards everything and returns null', (tester) async {
     _Result? result = (dateTime: DateTime(1999), repeat: null);
-    await tester.pumpWidget(_Host(
-      initial: DateTime(2026, 9, 21),
-      onOpen: (r) => result = r,
-    ));
+    await tester.pumpWidget(
+      _Host(initial: DateTime(2026, 9, 21), onOpen: (r) => result = r),
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
@@ -69,7 +70,9 @@ void main() {
     expect(result, isNull);
   });
 
-  testWidgets('Done with no date or time picked defaults to today at 9:00 AM', (tester) async {
+  testWidgets('Done with no date or time picked defaults to today at 9:00 AM', (
+    tester,
+  ) async {
     _Result? result;
     await tester.pumpWidget(_Host(onOpen: (r) => result = r));
     await tester.tap(find.text('open'));
@@ -79,7 +82,10 @@ void main() {
     await tester.pumpAndSettle();
 
     final expected = _today();
-    expect(result?.dateTime, DateTime(expected.year, expected.month, expected.day, 9, 0));
+    expect(
+      result?.dateTime,
+      DateTime(expected.year, expected.month, expected.day, 9, 0),
+    );
     expect(result?.repeat, isNull);
   });
 
@@ -97,96 +103,121 @@ void main() {
     expect(result?.dateTime, DateTime(expected.year, expected.month, 10, 9, 0));
   });
 
-  testWidgets('Set time opens the native time picker and updates the row label', (tester) async {
-    _Result? result;
-    await tester.pumpWidget(_Host(onOpen: (r) => result = r));
-    await tester.tap(find.text('open'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Set time'), findsOneWidget);
-    await tester.tap(find.text('Set time'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Set time'), findsNothing);
-
-    await tester.tap(find.text('Done'));
-    await tester.pumpAndSettle();
-
-    final expected = _today();
-    expect(result?.dateTime, DateTime(expected.year, expected.month, expected.day, 9, 0));
-  });
-
-  group('Repeat row', () {
-    testWidgets('configuring a repeat updates the row label and carries through Done', (tester) async {
+  testWidgets(
+    'Set time opens the native time picker and updates the row label',
+    (tester) async {
       _Result? result;
       await tester.pumpWidget(_Host(onOpen: (r) => result = r));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Repeat'), findsOneWidget);
-      await tester.tap(find.text('Repeat'));
+      expect(find.text('Set time'), findsOneWidget);
+      await tester.tap(find.text('Set time'));
       await tester.pumpAndSettle();
-      // Every 1 day, the dialog's default: tap Done inside the Repeat dialog.
-      await tester.tap(_repeatDialogDone());
+      await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Every 1 day'), findsOneWidget);
+      expect(find.text('Set time'), findsNothing);
 
       await tester.tap(find.text('Done'));
       await tester.pumpAndSettle();
 
-      expect(result?.repeat?.frequency, RepeatFrequency.daily);
-    });
+      final expected = _today();
+      expect(
+        result?.dateTime,
+        DateTime(expected.year, expected.month, expected.day, 9, 0),
+      );
+    },
+  );
 
-    testWidgets('the X on a configured repeat clears it without reopening the dialog', (tester) async {
-      // The handle must be released before the test ends, which addTearDown
-      // is too late for (see TasksScreenHarness.semanticsTest).
-      final handle = tester.ensureSemantics();
-      try {
-        final repeat = Repeat()..frequency = RepeatFrequency.weekly;
+  group('Repeat row', () {
+    testWidgets(
+      'configuring a repeat updates the row label and carries through Done',
+      (tester) async {
         _Result? result;
-        await tester.pumpWidget(_Host(initialRepeat: repeat, onOpen: (r) => result = r));
+        await tester.pumpWidget(_Host(onOpen: (r) => result = r));
         await tester.tap(find.text('open'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Every 1 week'), findsOneWidget);
-        await tester.tap(find.bySemanticsLabel('Remove repeat'));
+        expect(find.text('Repeat'), findsOneWidget);
+        await tester.tap(find.text('Repeat'));
+        await tester.pumpAndSettle();
+        // Every 1 day, the dialog's default: tap Done inside the Repeat dialog.
+        await tester.tap(_repeatDialogDone());
         await tester.pumpAndSettle();
 
-        expect(find.text('Repeat'), findsOneWidget);
-        expect(find.text('Every 1 week'), findsNothing);
+        expect(find.text('Every 1 day'), findsOneWidget);
 
         await tester.tap(find.text('Done'));
         await tester.pumpAndSettle();
 
-        expect(result?.repeat, isNull);
-      } finally {
-        handle.dispose();
-      }
-    });
+        expect(result?.repeat?.frequency, RepeatFrequency.daily);
+      },
+    );
 
-    testWidgets('Back in the Repeat dialog discards edits, keeping what was already configured', (tester) async {
-      final repeat = Repeat()..frequency = RepeatFrequency.weekly;
-      _Result? result;
-      await tester.pumpWidget(_Host(initialRepeat: repeat, onOpen: (r) => result = r));
-      await tester.tap(find.text('open'));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'the X on a configured repeat clears it without reopening the dialog',
+      (tester) async {
+        // The handle must be released before the test ends, which addTearDown
+        // is too late for (see TasksScreenHarness.semanticsTest).
+        final handle = tester.ensureSemantics();
+        try {
+          final repeat = Repeat()..frequency = RepeatFrequency.weekly;
+          _Result? result;
+          await tester.pumpWidget(
+            _Host(initialRepeat: repeat, onOpen: (r) => result = r),
+          );
+          await tester.tap(find.text('open'));
+          await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Every 1 week'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.add)); // bump the stepper, then abandon it
-      await tester.tap(find.byIcon(Icons.arrow_back));
-      await tester.pumpAndSettle();
+          expect(find.text('Every 1 week'), findsOneWidget);
+          await tester.tap(find.bySemanticsLabel('Remove repeat'));
+          await tester.pumpAndSettle();
 
-      expect(find.text('Every 1 week'), findsOneWidget, reason: 'Back must not commit the bumped interval');
+          expect(find.text('Repeat'), findsOneWidget);
+          expect(find.text('Every 1 week'), findsNothing);
 
-      await tester.tap(find.text('Done'));
-      await tester.pumpAndSettle();
+          await tester.tap(find.text('Done'));
+          await tester.pumpAndSettle();
 
-      expect(result?.repeat?.frequency, RepeatFrequency.weekly);
-      expect(result?.repeat?.interval, 1);
-    });
+          expect(result?.repeat, isNull);
+        } finally {
+          handle.dispose();
+        }
+      },
+    );
+
+    testWidgets(
+      'Back in the Repeat dialog discards edits, keeping what was already configured',
+      (tester) async {
+        final repeat = Repeat()..frequency = RepeatFrequency.weekly;
+        _Result? result;
+        await tester.pumpWidget(
+          _Host(initialRepeat: repeat, onOpen: (r) => result = r),
+        );
+        await tester.tap(find.text('open'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Every 1 week'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byIcon(Icons.add),
+        ); // bump the stepper, then abandon it
+        await tester.tap(find.byIcon(Icons.arrow_back));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('Every 1 week'),
+          findsOneWidget,
+          reason: 'Back must not commit the bumped interval',
+        );
+
+        await tester.tap(find.text('Done'));
+        await tester.pumpAndSettle();
+
+        expect(result?.repeat?.frequency, RepeatFrequency.weekly);
+        expect(result?.repeat?.interval, 1);
+      },
+    );
   });
 }

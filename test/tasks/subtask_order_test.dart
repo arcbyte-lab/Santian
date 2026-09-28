@@ -2,13 +2,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:santian/tasks/models/subtask.dart';
 import 'package:santian/tasks/subtask_order.dart';
 
-Subtask _subtask(String id, int order, {String title = 't'}) =>
-    Subtask()
-      ..id = id
-      ..title = title
-      ..order = order;
+Subtask _subtask(String id, int order, {String title = 't'}) => Subtask()
+  ..id = id
+  ..title = title
+  ..order = order;
 
-List<String> _ids(Iterable<Subtask> subtasks) => subtasks.map((s) => s.id).toList();
+List<String> _ids(Iterable<Subtask> subtasks) =>
+    subtasks.map((s) => s.id).toList();
 
 void main() {
   group('sortSubtasksForDisplay', () {

@@ -10,7 +10,8 @@ import '../../support/test_isar.dart';
 
 /// Fails its first save, then behaves normally.
 class _FlakyRepository extends TaskRepository {
-  _FlakyRepository(super.isar) : super(notifications: FakeNotificationService());
+  _FlakyRepository(super.isar)
+    : super(notifications: FakeNotificationService());
 
   var failNext = true;
 
@@ -35,32 +36,38 @@ void main() {
 
   tearDown(() => db.close());
 
-  CreateTaskCubit cubit({int listId = 7, TaskRepository? repo}) => CreateTaskCubit(
-        tasks: repo ?? TaskRepository(isar, notifications: FakeNotificationService()),
+  CreateTaskCubit cubit({int listId = 7, TaskRepository? repo}) =>
+      CreateTaskCubit(
+        tasks:
+            repo ??
+            TaskRepository(isar, notifications: FakeNotificationService()),
         listId: listId,
       );
 
   Future<List<Task>> saved() => isar.tasks.where().findAll();
 
   group('submit', () {
-    test('creates the Task in the given List with only the title set', () async {
-      final c = cubit(listId: 7)..setTitle('  Buy milk  ');
+    test(
+      'creates the Task in the given List with only the title set',
+      () async {
+        final c = cubit(listId: 7)..setTitle('  Buy milk  ');
 
-      expect(await c.submit(), isTrue);
+        expect(await c.submit(), isTrue);
 
-      final tasks = await saved();
-      expect(tasks, hasLength(1));
-      expect(tasks.single.title, 'Buy milk');
-      expect(tasks.single.listId, 7);
-      expect(tasks.single.description, isNull);
-      expect(tasks.single.isStarred, isFalse);
-      expect(tasks.single.isCompleted, isFalse);
-      expect(tasks.single.reminderAt, isNull);
-      expect(tasks.single.deadline, isNull);
-      expect(tasks.single.repeat, isNull);
-      expect(tasks.single.subtasks, isEmpty);
-      await c.close();
-    });
+        final tasks = await saved();
+        expect(tasks, hasLength(1));
+        expect(tasks.single.title, 'Buy milk');
+        expect(tasks.single.listId, 7);
+        expect(tasks.single.description, isNull);
+        expect(tasks.single.isStarred, isFalse);
+        expect(tasks.single.isCompleted, isFalse);
+        expect(tasks.single.reminderAt, isNull);
+        expect(tasks.single.deadline, isNull);
+        expect(tasks.single.repeat, isNull);
+        expect(tasks.single.subtasks, isEmpty);
+        await c.close();
+      },
+    );
 
     test('an empty or whitespace-only title creates nothing', () async {
       final c = cubit();
@@ -129,17 +136,20 @@ void main() {
       await c.close();
     });
 
-    test('notes are saved as the description while their field is showing', () async {
-      final c = cubit()
-        ..setTitle('With notes')
-        ..toggleNotes()
-        ..setNotes('  some details  ');
+    test(
+      'notes are saved as the description while their field is showing',
+      () async {
+        final c = cubit()
+          ..setTitle('With notes')
+          ..toggleNotes()
+          ..setNotes('  some details  ');
 
-      await c.submit();
+        await c.submit();
 
-      expect((await saved()).single.description, 'some details');
-      await c.close();
-    });
+        expect((await saved()).single.description, 'some details');
+        await c.close();
+      },
+    );
 
     test('blank notes leave the description null', () async {
       final c = cubit()
@@ -166,16 +176,19 @@ void main() {
       await c.close();
     });
 
-    test('a second submit from the same sheet does not create a second Task', () async {
-      final c = cubit()..setTitle('Once');
+    test(
+      'a second submit from the same sheet does not create a second Task',
+      () async {
+        final c = cubit()..setTitle('Once');
 
-      final results = await Future.wait([c.submit(), c.submit()]);
+        final results = await Future.wait([c.submit(), c.submit()]);
 
-      expect(results.where((r) => r), hasLength(1));
-      expect(await saved(), hasLength(1));
-      expect(await c.submit(), isFalse);
-      await c.close();
-    });
+        expect(results.where((r) => r), hasLength(1));
+        expect(await saved(), hasLength(1));
+        expect(await c.submit(), isFalse);
+        await c.close();
+      },
+    );
 
     test('a failed save can be retried', () async {
       final repo = _FlakyRepository(isar);

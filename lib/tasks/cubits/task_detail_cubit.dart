@@ -40,8 +40,8 @@ Task _clone(Task task) => Task()
 /// and Description's tap-to-edit/save-on-blur behavior.
 class TaskDetailCubit extends Cubit<TaskDetailState> {
   TaskDetailCubit({required TaskRepository tasks, required Task task})
-      : _tasks = tasks,
-        super(TaskDetailState(task: _clone(task)));
+    : _tasks = tasks,
+      super(TaskDetailState(task: _clone(task)));
 
   final TaskRepository _tasks;
 
@@ -49,7 +49,9 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
     final trimmed = title.trim();
     // A Task's title cannot be blank; an edit that would leave it blank is
     // dropped rather than saved.
-    return trimmed.isEmpty ? Future<void>.value() : _edit((t) => t.title = trimmed);
+    return trimmed.isEmpty
+        ? Future<void>.value()
+        : _edit((t) => t.title = trimmed);
   }
 
   Future<void> setDescription(String description) {
@@ -65,7 +67,8 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
   /// `repeat` — a spec gap: `toggleCompleted`'s repeating branch reads
   /// `reminderAt!`, so a repeat left dangling with no reminder would crash
   /// on completion. Flagged back to Arcbyte to confirm, not a ruling.
-  Future<void> setReminder(DateTime? reminderAt, {Repeat? repeat}) => _edit((t) {
+  Future<void> setReminder(DateTime? reminderAt, {Repeat? repeat}) =>
+      _edit((t) {
         t.reminderAt = reminderAt;
         t.repeat = reminderAt == null ? null : repeat;
       });
@@ -82,7 +85,12 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
     return _edit((t) {
       final sorted = sortSubtasksForDisplay(t.subtasks);
       final nextOrder = sorted.isEmpty ? 0 : sorted.last.order + 1;
-      t.subtasks = [...t.subtasks, Subtask()..title = trimmed..order = nextOrder];
+      t.subtasks = [
+        ...t.subtasks,
+        Subtask()
+          ..title = trimmed
+          ..order = nextOrder,
+      ];
     });
   }
 
@@ -102,11 +110,11 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
   /// this never touches `t.isCompleted`, and [toggleCompleted] never touches
   /// any Subtask.
   Future<void> toggleSubtask(String id) => _edit((t) {
-        t.subtasks = [
-          for (final s in t.subtasks)
-            s.id == id ? s.copyWith(isCompleted: !s.isCompleted) : s,
-        ];
-      });
+    t.subtasks = [
+      for (final s in t.subtasks)
+        s.id == id ? s.copyWith(isCompleted: !s.isCompleted) : s,
+    ];
+  });
 
   /// No undo - the spec doesn't ask for one here, unlike deleting the Task
   /// itself.
@@ -117,8 +125,8 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
   /// rewrites every `order` to match - see [applySubtaskReorder] for the
   /// index convention.
   Future<void> reorderSubtasks(int oldIndex, int newIndex) => _edit(
-        (t) => t.subtasks = applySubtaskReorder(t.subtasks, oldIndex, newIndex),
-      );
+    (t) => t.subtasks = applySubtaskReorder(t.subtasks, oldIndex, newIndex),
+  );
 
   Future<void> _edit(void Function(Task) mutate) {
     final next = _clone(state.task);
@@ -130,9 +138,11 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
   /// Same action as the Tasks List checkbox.
   Future<void> toggleCompleted() async {
     await _tasks.toggleCompleted(state.task);
-    emit(TaskDetailState(
-      task: _clone(state.task)..isCompleted = !state.task.isCompleted,
-    ));
+    emit(
+      TaskDetailState(
+        task: _clone(state.task)..isCompleted = !state.task.isCompleted,
+      ),
+    );
   }
 
   /// Deletes the Task immediately — no confirm dialog. The resulting state's

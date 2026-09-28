@@ -12,7 +12,10 @@ import 'task_detail_view.dart';
 /// Opens Task Detail as a modal sheet for [task]. Needs a [TaskRepository]
 /// and a [ListRepository] above [context]. If the Task is deleted while the
 /// sheet is open, shows an undo toast once the sheet closes.
-Future<void> showTaskDetailSheet(BuildContext context, {required Task task}) async {
+Future<void> showTaskDetailSheet(
+  BuildContext context, {
+  required Task task,
+}) async {
   final tasks = context.read<TaskRepository>();
   final lists = context.read<ListRepository>();
   final messenger = ScaffoldMessenger.of(context);
@@ -26,7 +29,9 @@ Future<void> showTaskDetailSheet(BuildContext context, {required Task task}) asy
     barrierColor: const Color(0x80000000),
     clipBehavior: Clip.antiAlias,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(AppRadius.sheet),
+      ),
     ),
     builder: (_) => MultiRepositoryProvider(
       providers: [
@@ -43,10 +48,15 @@ Future<void> showTaskDetailSheet(BuildContext context, {required Task task}) asy
   // No confirm dialog for delete; this toast is the one accident-guard, and
   // letting it expire (or dismissing it) makes the delete final.
   if (deleted != null) {
-    messenger.showSnackBar(SnackBar(
-      content: const Text('Task deleted'),
-      action: SnackBarAction(label: 'Undo', onPressed: () => tasks.update(deleted)),
-    ));
+    messenger.showSnackBar(
+      SnackBar(
+        content: const Text('Task deleted'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () => tasks.update(deleted),
+        ),
+      ),
+    );
   }
 }
 
@@ -68,8 +78,9 @@ class TaskDetailSheet extends StatelessWidget {
           builder: (context, state) {
             final cubit = context.read<TaskDetailCubit>();
             return Padding(
-              padding:
-                  EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(context).bottom,
+              ),
               child: TaskDetailView(
                 state: state,
                 lists: lists,

@@ -4,7 +4,11 @@ import '../../core/theme/app_colors.dart';
 
 /// The Cancel/Done row shared by the reminder and deadline picker dialogs.
 class PickerButtonRow extends StatelessWidget {
-  const PickerButtonRow({super.key, required this.onCancel, required this.onDone});
+  const PickerButtonRow({
+    super.key,
+    required this.onCancel,
+    required this.onDone,
+  });
 
   final VoidCallback onCancel;
   final VoidCallback onDone;

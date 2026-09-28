@@ -8,10 +8,7 @@ import 'create_task_form.dart';
 
 /// Opens the Create Task sheet already risen, with the keyboard on the title.
 /// The new Task goes into [listId]. Needs a [TaskRepository] above [context].
-Future<void> showCreateTaskSheet(
-  BuildContext context, {
-  required int listId,
-}) {
+Future<void> showCreateTaskSheet(BuildContext context, {required int listId}) {
   final tasks = context.read<TaskRepository>();
   return showModalBottomSheet<void>(
     context: context,

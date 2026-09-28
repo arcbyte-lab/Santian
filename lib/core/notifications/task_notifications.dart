@@ -24,7 +24,10 @@ const deadlineNotificationHour = 9;
 /// (see `TaskRepository.toggleCompleted`) briefly sets `isCompleted = true`
 /// before flipping it back to `false` in the same write, and this rule holds
 /// either way, rather than depending on that implementation detail.
-Future<void> syncTaskNotifications(NotificationService notifications, Task task) async {
+Future<void> syncTaskNotifications(
+  NotificationService notifications,
+  Task task,
+) async {
   if (task.isCompleted) {
     await cancelTaskNotifications(notifications, task.id);
     return;
@@ -47,7 +50,12 @@ Future<void> syncTaskNotifications(NotificationService notifications, Task task)
   } else {
     await notifications.schedule(
       deadlineNotificationId(task.id),
-      at: DateTime(deadline.year, deadline.month, deadline.day, deadlineNotificationHour),
+      at: DateTime(
+        deadline.year,
+        deadline.month,
+        deadline.day,
+        deadlineNotificationHour,
+      ),
       title: task.title,
       body: 'Due today',
     );
@@ -55,7 +63,10 @@ Future<void> syncTaskNotifications(NotificationService notifications, Task task)
 }
 
 /// Cancels both of [taskId]'s notifications - used on delete.
-Future<void> cancelTaskNotifications(NotificationService notifications, int taskId) async {
+Future<void> cancelTaskNotifications(
+  NotificationService notifications,
+  int taskId,
+) async {
   await notifications.cancel(reminderNotificationId(taskId));
   await notifications.cancel(deadlineNotificationId(taskId));
 }

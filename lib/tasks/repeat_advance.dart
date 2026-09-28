@@ -77,16 +77,25 @@ DateTime _addMonthsClamped(DateTime dt, int months) {
   final month = totalMonths % 12 + 1;
   final lastDayOfTargetMonth = DateTime(year, month + 1, 0).day;
   final day = dt.day > lastDayOfTargetMonth ? lastDayOfTargetMonth : dt.day;
-  return DateTime(year, month, day, dt.hour, dt.minute, dt.second, dt.millisecond, dt.microsecond);
+  return DateTime(
+    year,
+    month,
+    day,
+    dt.hour,
+    dt.minute,
+    dt.second,
+    dt.millisecond,
+    dt.microsecond,
+  );
 }
 
 DateTime _addDays(DateTime dt, int days) => DateTime(
-      dt.year,
-      dt.month,
-      dt.day + days,
-      dt.hour,
-      dt.minute,
-      dt.second,
-      dt.millisecond,
-      dt.microsecond,
-    );
+  dt.year,
+  dt.month,
+  dt.day + days,
+  dt.hour,
+  dt.minute,
+  dt.second,
+  dt.millisecond,
+  dt.microsecond,
+);

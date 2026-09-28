@@ -28,8 +28,12 @@ class _Host extends StatelessWidget {
 }
 
 void main() {
-  testWidgets('has no Set Time or Repeat row — calendar and Cancel/Done only', (tester) async {
-    await tester.pumpWidget(_Host(initial: DateTime(2026, 9, 21), onOpen: (_) {}));
+  testWidgets('has no Set Time or Repeat row — calendar and Cancel/Done only', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _Host(initial: DateTime(2026, 9, 21), onOpen: (_) {}),
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
@@ -42,7 +46,9 @@ void main() {
 
   testWidgets('Cancel discards everything and returns null', (tester) async {
     DateTime? result = DateTime(1999);
-    await tester.pumpWidget(_Host(initial: DateTime(2026, 9, 21), onOpen: (d) => result = d));
+    await tester.pumpWidget(
+      _Host(initial: DateTime(2026, 9, 21), onOpen: (d) => result = d),
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
@@ -54,7 +60,9 @@ void main() {
 
   testWidgets('Done commits the selected date only, no time', (tester) async {
     DateTime? result;
-    await tester.pumpWidget(_Host(initial: DateTime(2026, 9, 21), onOpen: (d) => result = d));
+    await tester.pumpWidget(
+      _Host(initial: DateTime(2026, 9, 21), onOpen: (d) => result = d),
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
@@ -66,7 +74,9 @@ void main() {
 
   testWidgets('tapping a day changes which date Done commits', (tester) async {
     DateTime? result;
-    await tester.pumpWidget(_Host(initial: DateTime(2026, 9, 21), onOpen: (d) => result = d));
+    await tester.pumpWidget(
+      _Host(initial: DateTime(2026, 9, 21), onOpen: (d) => result = d),
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 

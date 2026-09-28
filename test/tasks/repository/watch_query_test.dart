@@ -46,41 +46,51 @@ void main() {
     firstRead.complete(1);
     await pumpEventQueue();
 
-    expect(seen.last, 2, reason: 'the read after the change must be emitted last');
+    expect(
+      seen.last,
+      2,
+      reason: 'the read after the change must be emitted last',
+    );
     await sub.cancel();
   });
 
-  test('reads never overlap, and a burst of changes costs one extra read', () async {
-    var active = 0;
-    var maxActive = 0;
-    var reads = 0;
-    final gate = Completer<void>();
-    final sub = watchQuery(changes.stream, () async {
-      reads++;
-      active++;
-      if (active > maxActive) maxActive = active;
-      if (reads == 1) await gate.future;
-      active--;
-      return reads;
-    }).listen((_) {});
-    await pumpEventQueue();
+  test(
+    'reads never overlap, and a burst of changes costs one extra read',
+    () async {
+      var active = 0;
+      var maxActive = 0;
+      var reads = 0;
+      final gate = Completer<void>();
+      final sub = watchQuery(changes.stream, () async {
+        reads++;
+        active++;
+        if (active > maxActive) maxActive = active;
+        if (reads == 1) await gate.future;
+        active--;
+        return reads;
+      }).listen((_) {});
+      await pumpEventQueue();
 
-    for (var i = 0; i < 5; i++) {
-      changes.add(null);
-    }
-    await pumpEventQueue();
-    gate.complete();
-    await pumpEventQueue();
+      for (var i = 0; i < 5; i++) {
+        changes.add(null);
+      }
+      await pumpEventQueue();
+      gate.complete();
+      await pumpEventQueue();
 
-    expect(maxActive, 1);
-    expect(reads, 2, reason: 'the initial read plus one for the whole burst');
-    await sub.cancel();
-  });
+      expect(maxActive, 1);
+      expect(reads, 2, reason: 'the initial read plus one for the whole burst');
+      await sub.cancel();
+    },
+  );
 
   test('cancelling stops emissions and stops listening for changes', () async {
     var reads = 0;
     final seen = <int>[];
-    final sub = watchQuery(changes.stream, () async => ++reads).listen(seen.add);
+    final sub = watchQuery(
+      changes.stream,
+      () async => ++reads,
+    ).listen(seen.add);
     await pumpEventQueue();
     await sub.cancel();
 

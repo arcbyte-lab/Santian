@@ -20,10 +20,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final dir = await getApplicationDocumentsDirectory();
-  final isar = await Isar.open(
-    [TaskSchema, TaskListSchema],
-    directory: dir.path,
-  );
+  final isar = await Isar.open([
+    TaskSchema,
+    TaskListSchema,
+  ], directory: dir.path);
   if (kDebugMode) await seedDebugData(isar);
 
   final notifications = FlutterLocalNotificationsService();
@@ -39,7 +39,10 @@ Future<void> main() async {
         RepositoryProvider.value(value: tasks),
         RepositoryProvider(create: (_) => ListRepository(isar)),
       ],
-      child: SantianApp(navigatorKey: _navigatorKey, home: const TasksListScreen()),
+      child: SantianApp(
+        navigatorKey: _navigatorKey,
+        home: const TasksListScreen(),
+      ),
     ),
   );
 

@@ -24,9 +24,9 @@ class AppColors extends ThemeExtension<AppColors> {
 
   @override
   AppColors copyWith({Color? muted, Color? mutedForeground}) => AppColors(
-        muted: muted ?? this.muted,
-        mutedForeground: mutedForeground ?? this.mutedForeground,
-      );
+    muted: muted ?? this.muted,
+    mutedForeground: mutedForeground ?? this.mutedForeground,
+  );
 
   @override
   AppColors lerp(AppColors? other, double t) {

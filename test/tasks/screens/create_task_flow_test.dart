@@ -16,33 +16,44 @@ extension on TasksScreenHarness {
 }
 
 void main() {
-  testWidgets('FAB, type a title, Done: the sheet closes and the Task appears', (tester) async {
-    final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
+  testWidgets(
+    'FAB, type a title, Done: the sheet closes and the Task appears',
+    (tester) async {
+      final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
 
-    await h.openSheet();
-    expect(find.byType(CreateTaskForm), findsOneWidget);
-    await tester.enterText(find.byType(TextField), 'Buy milk');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await h.settle();
+      await h.openSheet();
+      expect(find.byType(CreateTaskForm), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'Buy milk');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await h.settle();
 
-    expect(find.byType(CreateTaskForm), findsNothing);
-    expect(find.text('Buy milk'), findsOneWidget);
-    final tasks = await h.saved();
-    expect(tasks.map((t) => t.title), ['Buy milk']);
-    expect(tasks.single.listId, (await h.tester.runAsync(() => h.isar.taskLists.where().findFirst()))!.id);
-  });
+      expect(find.byType(CreateTaskForm), findsNothing);
+      expect(find.text('Buy milk'), findsOneWidget);
+      final tasks = await h.saved();
+      expect(tasks.map((t) => t.title), ['Buy milk']);
+      expect(
+        tasks.single.listId,
+        (await h.tester.runAsync(
+          () => h.isar.taskLists.where().findFirst(),
+        ))!.id,
+      );
+    },
+  );
 
-  testWidgets('Done on an empty title keeps the sheet open and creates nothing', (tester) async {
-    final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
+  testWidgets(
+    'Done on an empty title keeps the sheet open and creates nothing',
+    (tester) async {
+      final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
 
-    await h.openSheet();
-    await tester.showKeyboard(find.byType(TextField));
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await h.settle();
+      await h.openSheet();
+      await tester.showKeyboard(find.byType(TextField));
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await h.settle();
 
-    expect(find.byType(CreateTaskForm), findsOneWidget);
-    expect(await h.saved(), isEmpty);
-  });
+      expect(find.byType(CreateTaskForm), findsOneWidget);
+      expect(await h.saved(), isEmpty);
+    },
+  );
 
   testWidgets('notes and star are saved with the Task', (tester) async {
     final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
@@ -69,7 +80,9 @@ void main() {
     expect(task.isStarred, isTrue);
   });
 
-  testWidgets('the clock icon sets a reminder that is saved with the Task', (tester) async {
+  testWidgets('the clock icon sets a reminder that is saved with the Task', (
+    tester,
+  ) async {
     final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
 
     await h.openSheet();
@@ -84,12 +97,22 @@ void main() {
     final task = (await h.saved()).single;
     expect(task.title, 'Morning workout');
     expect(task.reminderAt, isNotNull);
-    expect(TimeOfDay.fromDateTime(task.reminderAt!), const TimeOfDay(hour: 9, minute: 0));
+    expect(
+      TimeOfDay.fromDateTime(task.reminderAt!),
+      const TimeOfDay(hour: 9, minute: 0),
+    );
   });
 
-  testWidgets('a Task is created in whichever List tab is active', (tester) async {
-    final h = await TasksScreenHarness.start(tester, ['Personal Interest', 'My Tasks']);
-    final second = (await tester.runAsync(() => h.isar.taskLists.where().findAll()))!.last;
+  testWidgets('a Task is created in whichever List tab is active', (
+    tester,
+  ) async {
+    final h = await TasksScreenHarness.start(tester, [
+      'Personal Interest',
+      'My Tasks',
+    ]);
+    final second = (await tester.runAsync(
+      () => h.isar.taskLists.where().findAll(),
+    ))!.last;
 
     await tester.tap(find.text('My Tasks'));
     await h.settle();
@@ -103,23 +126,36 @@ void main() {
     expect(find.text('In the second list'), findsOneWidget);
   });
 
-  testWidgets('from the Star tab a Task goes into the last List, not into Star itself', (tester) async {
-    final h = await TasksScreenHarness.start(tester, ['Personal Interest', 'My Tasks']);
-    final second = (await tester.runAsync(() => h.isar.taskLists.where().findAll()))!.last;
+  testWidgets(
+    'from the Star tab a Task goes into the last List, not into Star itself',
+    (tester) async {
+      final h = await TasksScreenHarness.start(tester, [
+        'Personal Interest',
+        'My Tasks',
+      ]);
+      final second = (await tester.runAsync(
+        () => h.isar.taskLists.where().findAll(),
+      ))!.last;
 
-    await tester.tap(find.text('My Tasks'));
-    await h.settle();
-    await tester.tap(find.bySemanticsLabel('Starred'));
-    await h.settle();
-    await h.openSheet();
-    await tester.enterText(find.byType(TextField), 'Made on Star');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await h.settle();
+      await tester.tap(find.text('My Tasks'));
+      await h.settle();
+      await tester.tap(find.bySemanticsLabel('Starred'));
+      await h.settle();
+      await h.openSheet();
+      await tester.enterText(find.byType(TextField), 'Made on Star');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await h.settle();
 
-    final task = (await h.saved()).single;
-    expect(task.listId, second.id);
-    expect(task.isStarred, isFalse, reason: 'Star is a filter, not a List; nothing is starred unless the user stars it');
-  });
+      final task = (await h.saved()).single;
+      expect(task.listId, second.id);
+      expect(
+        task.isStarred,
+        isFalse,
+        reason:
+            'Star is a filter, not a List; nothing is starred unless the user stars it',
+      );
+    },
+  );
 
   testWidgets('dismissing the sheet creates nothing', (tester) async {
     final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
@@ -150,7 +186,9 @@ void main() {
 
     final task = (await h.saved()).single;
     expect(task.title, 'First ever task');
-    final defaultList = (await tester.runAsync(() => h.isar.taskLists.where().findFirst()))!;
+    final defaultList = (await tester.runAsync(
+      () => h.isar.taskLists.where().findFirst(),
+    ))!;
     expect(defaultList.name, 'My Tasks');
     expect(task.listId, defaultList.id);
   });

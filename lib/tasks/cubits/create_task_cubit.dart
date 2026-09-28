@@ -30,23 +30,22 @@ class CreateTaskState {
     bool? notesVisible,
     bool? isStarred,
     DateTime? reminderAt,
-  }) =>
-      CreateTaskState(
-        title: title ?? this.title,
-        notes: notes ?? this.notes,
-        notesVisible: notesVisible ?? this.notesVisible,
-        isStarred: isStarred ?? this.isStarred,
-        reminderAt: reminderAt ?? this.reminderAt,
-      );
+  }) => CreateTaskState(
+    title: title ?? this.title,
+    notes: notes ?? this.notes,
+    notesVisible: notesVisible ?? this.notesVisible,
+    isStarred: isStarred ?? this.isStarred,
+    reminderAt: reminderAt ?? this.reminderAt,
+  );
 }
 
 /// State for one open Create Task sheet. Everything but the title starts empty
 /// and is set later from Task Detail; only notes and star can be set here.
 class CreateTaskCubit extends Cubit<CreateTaskState> {
   CreateTaskCubit({required TaskRepository tasks, required int listId})
-      : _tasks = tasks,
-        _listId = listId,
-        super(const CreateTaskState());
+    : _tasks = tasks,
+      _listId = listId,
+      super(const CreateTaskState());
 
   final TaskRepository _tasks;
   final int _listId;
@@ -56,21 +55,22 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
 
   void setNotes(String notes) => emit(state.copyWith(notes: notes));
 
-  void toggleNotes() =>
-      emit(state.copyWith(notesVisible: !state.notesVisible));
+  void toggleNotes() => emit(state.copyWith(notesVisible: !state.notesVisible));
 
   void toggleStar() => emit(state.copyWith(isStarred: !state.isStarred));
 
   // Bypasses copyWith: `repeat` must be settable back to null (Done with no
   // repeat configured), which copyWith's `??` pattern can't express.
-  void setReminder(DateTime reminderAt, Repeat? repeat) => emit(CreateTaskState(
-        title: state.title,
-        notes: state.notes,
-        notesVisible: state.notesVisible,
-        isStarred: state.isStarred,
-        reminderAt: reminderAt,
-        repeat: repeat,
-      ));
+  void setReminder(DateTime reminderAt, Repeat? repeat) => emit(
+    CreateTaskState(
+      title: state.title,
+      notes: state.notes,
+      notesVisible: state.notesVisible,
+      isStarred: state.isStarred,
+      reminderAt: reminderAt,
+      repeat: repeat,
+    ),
+  );
 
   /// Creates the Task and returns true. Returns false, doing nothing, when the
   /// title is blank (the sheet stays open, with no error) or when a Task was
@@ -83,13 +83,15 @@ class CreateTaskCubit extends Cubit<CreateTaskState> {
     // rather than saving text the user can no longer see.
     final notes = state.notesVisible ? state.notes.trim() : '';
     try {
-      await _tasks.create(Task()
-        ..listId = _listId
-        ..title = state.title.trim()
-        ..description = notes.isEmpty ? null : notes
-        ..isStarred = state.isStarred
-        ..reminderAt = state.reminderAt
-        ..repeat = state.repeat);
+      await _tasks.create(
+        Task()
+          ..listId = _listId
+          ..title = state.title.trim()
+          ..description = notes.isEmpty ? null : notes
+          ..isStarred = state.isStarred
+          ..reminderAt = state.reminderAt
+          ..repeat = state.repeat,
+      );
     } catch (_) {
       _submitted = false; // a failed save must not lock the sheet
       rethrow;

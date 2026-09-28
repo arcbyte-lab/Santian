@@ -6,13 +6,20 @@ import '../models/repeat.dart';
 
 const List<String> _weekdayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const List<String> _weekdayFullNames = [
-  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
 ];
 
 /// "Every 2 weeks" — the label shown on the reminder picker's Repeat row
 /// once a repeat is configured. Omits the weekday selection for brevity.
 String summarizeRepeat(Repeat repeat) {
-  final unit = repeat.unit ??
+  final unit =
+      repeat.unit ??
       switch (repeat.frequency) {
         RepeatFrequency.daily => RepeatUnit.days,
         RepeatFrequency.weekly => RepeatUnit.weeks,
@@ -84,11 +91,11 @@ class _RepeatDialogState extends State<RepeatDialog> {
   }
 
   String _unitLabel(RepeatUnit unit) => switch (unit) {
-        RepeatUnit.days => _interval == 1 ? 'day' : 'days',
-        RepeatUnit.weeks => _interval == 1 ? 'week' : 'weeks',
-        RepeatUnit.months => _interval == 1 ? 'month' : 'months',
-        RepeatUnit.years => _interval == 1 ? 'year' : 'years',
-      };
+    RepeatUnit.days => _interval == 1 ? 'day' : 'days',
+    RepeatUnit.weeks => _interval == 1 ? 'week' : 'weeks',
+    RepeatUnit.months => _interval == 1 ? 'month' : 'months',
+    RepeatUnit.years => _interval == 1 ? 'year' : 'years',
+  };
 
   void _done() {
     final repeat = Repeat();
@@ -109,7 +116,9 @@ class _RepeatDialogState extends State<RepeatDialog> {
       repeat.unit = _unit;
     }
     // weekdays only ever applies to a weekly-shaped repeat.
-    repeat.weekdays = _unit == RepeatUnit.weeks ? (_weekdays.toList()..sort()) : [];
+    repeat.weekdays = _unit == RepeatUnit.weeks
+        ? (_weekdays.toList()..sort())
+        : [];
     Navigator.of(context).pop(repeat);
   }
 
@@ -140,7 +149,11 @@ class _RepeatDialogState extends State<RepeatDialog> {
                     onTap: () => Navigator.of(context).pop(),
                     child: Padding(
                       padding: const EdgeInsets.all(4),
-                      child: Icon(Icons.arrow_back, size: 20, color: scheme.onSurface),
+                      child: Icon(
+                        Icons.arrow_back,
+                        size: 20,
+                        color: scheme.onSurface,
+                      ),
                     ),
                   ),
                 ),
@@ -174,10 +187,16 @@ class _RepeatDialogState extends State<RepeatDialog> {
               children: [
                 Text(
                   'Every',
-                  style: theme.textTheme.bodyMedium!.copyWith(fontSize: 15, color: scheme.onSurface),
+                  style: theme.textTheme.bodyMedium!.copyWith(
+                    fontSize: 15,
+                    color: scheme.onSurface,
+                  ),
                 ),
                 const SizedBox(width: 12),
-                _Stepper(value: _interval, onChanged: (v) => setState(() => _interval = v)),
+                _Stepper(
+                  value: _interval,
+                  onChanged: (v) => setState(() => _interval = v),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButton<RepeatUnit>(
@@ -186,7 +205,10 @@ class _RepeatDialogState extends State<RepeatDialog> {
                     underline: const SizedBox.shrink(),
                     items: [
                       for (final unit in RepeatUnit.values)
-                        DropdownMenuItem(value: unit, child: Text(_unitLabel(unit))),
+                        DropdownMenuItem(
+                          value: unit,
+                          child: Text(_unitLabel(unit)),
+                        ),
                     ],
                     onChanged: (unit) {
                       if (unit != null) setState(() => _unit = unit);
@@ -250,7 +272,9 @@ class _Stepper extends StatelessWidget {
               child: Icon(
                 Icons.remove,
                 size: 18,
-                color: canDecrease ? scheme.onSurface : muted.withValues(alpha: 0.5),
+                color: canDecrease
+                    ? scheme.onSurface
+                    : muted.withValues(alpha: 0.5),
               ),
             ),
           ),
@@ -260,7 +284,10 @@ class _Stepper extends StatelessWidget {
           child: Text(
             '$value',
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium!.copyWith(fontSize: 15, color: scheme.onSurface),
+            style: theme.textTheme.bodyMedium!.copyWith(
+              fontSize: 15,
+              color: scheme.onSurface,
+            ),
           ),
         ),
         Semantics(
@@ -314,7 +341,9 @@ class _WeekdayChip extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: selected ? scheme.primary : null,
-            border: selected ? null : Border.all(color: scheme.outline, width: 1.5),
+            border: selected
+                ? null
+                : Border.all(color: scheme.outline, width: 1.5),
           ),
           child: Text(
             letter,

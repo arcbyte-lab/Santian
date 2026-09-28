@@ -48,16 +48,19 @@ void main() {
       await c.close();
     });
 
-    test('a blank title is dropped, leaving the stored title unchanged', () async {
-      final task = await seed(title: 'Keep me');
-      final c = cubit(task);
+    test(
+      'a blank title is dropped, leaving the stored title unchanged',
+      () async {
+        final task = await seed(title: 'Keep me');
+        final c = cubit(task);
 
-      await c.setTitle('   ');
+        await c.setTitle('   ');
 
-      expect(c.state.task.title, 'Keep me');
-      expect((await isar.tasks.get(task.id))!.title, 'Keep me');
-      await c.close();
-    });
+        expect(c.state.task.title, 'Keep me');
+        expect((await isar.tasks.get(task.id))!.title, 'Keep me');
+        await c.close();
+      },
+    );
   });
 
   group('setDescription', () {
@@ -99,16 +102,19 @@ void main() {
     await c.close();
   });
 
-  test('setListId reassigns the Task to another List and persists it', () async {
-    final task = await seed(listId: 1);
-    final c = cubit(task);
+  test(
+    'setListId reassigns the Task to another List and persists it',
+    () async {
+      final task = await seed(listId: 1);
+      final c = cubit(task);
 
-    await c.setListId(2);
+      await c.setListId(2);
 
-    expect(c.state.task.listId, 2);
-    expect((await isar.tasks.get(task.id))!.listId, 2);
-    await c.close();
-  });
+      expect(c.state.task.listId, 2);
+      expect((await isar.tasks.get(task.id))!.listId, 2);
+      await c.close();
+    },
+  );
 
   group('setReminder', () {
     test('sets and persists reminderAt', () async {
@@ -118,7 +124,10 @@ void main() {
       await c.setReminder(DateTime(2026, 9, 21, 9));
 
       expect(c.state.task.reminderAt, DateTime(2026, 9, 21, 9));
-      expect((await isar.tasks.get(task.id))!.reminderAt, DateTime(2026, 9, 21, 9));
+      expect(
+        (await isar.tasks.get(task.id))!.reminderAt,
+        DateTime(2026, 9, 21, 9),
+      );
       await c.close();
     });
 
@@ -142,15 +151,20 @@ void main() {
       await c.setReminder(DateTime(2026, 9, 21, 9), repeat: repeat);
 
       expect(c.state.task.repeat?.frequency, RepeatFrequency.weekly);
-      expect((await isar.tasks.get(task.id))!.repeat?.frequency, RepeatFrequency.weekly);
+      expect(
+        (await isar.tasks.get(task.id))!.repeat?.frequency,
+        RepeatFrequency.weekly,
+      );
       await c.close();
     });
 
     test('null also clears a previously-set repeat', () async {
       final task = await seed();
-      await tasks.update(task
-        ..reminderAt = DateTime(2026, 9, 21, 9)
-        ..repeat = (Repeat()..frequency = RepeatFrequency.daily));
+      await tasks.update(
+        task
+          ..reminderAt = DateTime(2026, 9, 21, 9)
+          ..repeat = (Repeat()..frequency = RepeatFrequency.daily),
+      );
       final c = cubit(task);
 
       await c.setReminder(null);
@@ -212,33 +226,39 @@ void main() {
   });
 
   group('delete', () {
-    test('removes the Task and marks the state deleted, keeping its id', () async {
-      final task = await seed(title: 'Doomed');
-      final c = cubit(task);
+    test(
+      'removes the Task and marks the state deleted, keeping its id',
+      () async {
+        final task = await seed(title: 'Doomed');
+        final c = cubit(task);
 
-      await c.delete();
+        await c.delete();
 
-      expect(c.state.isDeleted, isTrue);
-      expect(c.state.task.id, task.id);
-      expect(c.state.task.title, 'Doomed');
-      expect(await isar.tasks.get(task.id), isNull);
-      await c.close();
-    });
+        expect(c.state.isDeleted, isTrue);
+        expect(c.state.task.id, task.id);
+        expect(c.state.task.title, 'Doomed');
+        expect(await isar.tasks.get(task.id), isNull);
+        await c.close();
+      },
+    );
 
-    test('the deleted Task can be restored exactly via update, same id', () async {
-      final task = await seed(title: 'Doomed', starred: true);
-      final c = cubit(task);
+    test(
+      'the deleted Task can be restored exactly via update, same id',
+      () async {
+        final task = await seed(title: 'Doomed', starred: true);
+        final c = cubit(task);
 
-      await c.delete();
-      final deleted = c.state.task;
-      await tasks.update(deleted);
+        await c.delete();
+        final deleted = c.state.task;
+        await tasks.update(deleted);
 
-      final restored = await isar.tasks.get(task.id);
-      expect(restored, isNotNull);
-      expect(restored!.id, task.id);
-      expect(restored.title, 'Doomed');
-      expect(restored.isStarred, isTrue);
-      await c.close();
-    });
+        final restored = await isar.tasks.get(task.id);
+        expect(restored, isNotNull);
+        expect(restored!.id, task.id);
+        expect(restored.title, 'Doomed');
+        expect(restored.isStarred, isTrue);
+        await c.close();
+      },
+    );
   });
 }

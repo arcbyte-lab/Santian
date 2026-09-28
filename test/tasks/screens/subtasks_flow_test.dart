@@ -31,40 +31,47 @@ extension on TasksScreenHarness {
 }
 
 void main() {
-  testWidgets('the input reads "Add subtasks" empty, "Add subtask" once one exists',
-      (tester) async {
-    final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
-    await h.addTask('alpha');
-    await h.openDetail('alpha');
+  testWidgets(
+    'the input reads "Add subtasks" empty, "Add subtask" once one exists',
+    (tester) async {
+      final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
+      await h.addTask('alpha');
+      await h.openDetail('alpha');
 
-    expect(find.text('Add subtasks'), findsOneWidget);
+      expect(find.text('Add subtasks'), findsOneWidget);
 
-    await h.addSubtask('wash dishes');
+      await h.addSubtask('wash dishes');
 
-    expect(find.text('Add subtasks'), findsNothing);
-    expect(find.text('Add subtask'), findsOneWidget);
-  });
+      expect(find.text('Add subtasks'), findsNothing);
+      expect(find.text('Add subtask'), findsOneWidget);
+    },
+  );
 
-  testWidgets('typing a title and pressing Enter creates and persists a Subtask, '
-      'clearing the input', (tester) async {
-    final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
-    await h.addTask('alpha');
-    await h.openDetail('alpha');
+  testWidgets(
+    'typing a title and pressing Enter creates and persists a Subtask, '
+    'clearing the input',
+    (tester) async {
+      final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
+      await h.addTask('alpha');
+      await h.openDetail('alpha');
 
-    await h.addSubtask('wash dishes');
+      await h.addSubtask('wash dishes');
 
-    expect(find.text('wash dishes'), findsOneWidget);
-    final subtasks = await h.subtasksOf('alpha');
-    expect(subtasks.map((s) => s.title), ['wash dishes']);
-    expect(subtasks.single.order, 0);
-    expect(
-      tester.widget<TextField>(find.byKey(_inputKey)).controller!.text,
-      isEmpty,
-      reason: 'the input clears itself for the next entry',
-    );
-  });
+      expect(find.text('wash dishes'), findsOneWidget);
+      final subtasks = await h.subtasksOf('alpha');
+      expect(subtasks.map((s) => s.title), ['wash dishes']);
+      expect(subtasks.single.order, 0);
+      expect(
+        tester.widget<TextField>(find.byKey(_inputKey)).controller!.text,
+        isEmpty,
+        reason: 'the input clears itself for the next entry',
+      );
+    },
+  );
 
-  testWidgets('a second Subtask is appended after the first, by order', (tester) async {
+  testWidgets('a second Subtask is appended after the first, by order', (
+    tester,
+  ) async {
     final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
     await h.addTask('alpha');
     await h.openDetail('alpha');
@@ -83,7 +90,10 @@ void main() {
     await h.openDetail('alpha');
     await h.addSubtask('wash dishes');
 
-    await tester.enterText(find.widgetWithText(TextField, 'wash dishes'), 'wash the dishes');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'wash dishes'),
+      'wash the dishes',
+    );
     FocusManager.instance.primaryFocus?.unfocus();
     await h.settle();
 
@@ -91,13 +101,18 @@ void main() {
     expect(subtasks.single.title, 'wash the dishes');
   });
 
-  testWidgets('blurring a Subtask title left blank keeps the old title', (tester) async {
+  testWidgets('blurring a Subtask title left blank keeps the old title', (
+    tester,
+  ) async {
     final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
     await h.addTask('alpha');
     await h.openDetail('alpha');
     await h.addSubtask('wash dishes');
 
-    await tester.enterText(find.widgetWithText(TextField, 'wash dishes'), '   ');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'wash dishes'),
+      '   ',
+    );
     FocusManager.instance.primaryFocus?.unfocus();
     await h.settle();
 
@@ -105,8 +120,9 @@ void main() {
     expect(subtasks.single.title, 'wash dishes');
   });
 
-  semanticsTest('completing every Subtask does not complete the parent Task',
-      (tester) async {
+  semanticsTest('completing every Subtask does not complete the parent Task', (
+    tester,
+  ) async {
     final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
     await h.addTask('alpha');
     await h.openDetail('alpha');
@@ -126,7 +142,9 @@ void main() {
     expect(task.isCompleted, isFalse);
   });
 
-  testWidgets('completing the parent Task does not complete its Subtasks', (tester) async {
+  testWidgets('completing the parent Task does not complete its Subtasks', (
+    tester,
+  ) async {
     final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
     await h.addTask('alpha');
     await h.openDetail('alpha');
@@ -140,7 +158,9 @@ void main() {
     expect(task.subtasks.single.isCompleted, isFalse);
   });
 
-  semanticsTest('deleting a Subtask removes it, with no undo offered', (tester) async {
+  semanticsTest('deleting a Subtask removes it, with no undo offered', (
+    tester,
+  ) async {
     final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
     await h.addTask('alpha');
     await h.openDetail('alpha');
@@ -155,28 +175,35 @@ void main() {
     expect(find.text('Undo'), findsNothing);
   });
 
-  testWidgets('dragging the first Subtask below the second persists the new order',
-      (tester) async {
-    // Drives the drop via the real ReorderableListView's own onReorder, the
-    // same call a completed drag makes, rather than simulating the drag
-    // gesture pixel-by-pixel: `SliverReorderableList`'s drop point is an
-    // internal item-extent computation Flutter doesn't expose to tests, so a
-    // simulated drag is exactly as fragile as it sounds and was, in fact,
-    // tried here first and abandoned as unreliable. What's actually under
-    // test - the cubit call, the persisted `order` values, the re-render -
-    // is unaffected by which of the two triggers it.
-    final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
-    await h.addTask('alpha');
-    await h.openDetail('alpha');
-    await h.addSubtask('wash dishes');
-    await h.addSubtask('buy milk');
-    expect((await h.subtasksOf('alpha')).map((s) => s.title), ['wash dishes', 'buy milk']);
+  testWidgets(
+    'dragging the first Subtask below the second persists the new order',
+    (tester) async {
+      // Drives the drop via the real ReorderableListView's own onReorder, the
+      // same call a completed drag makes, rather than simulating the drag
+      // gesture pixel-by-pixel: `SliverReorderableList`'s drop point is an
+      // internal item-extent computation Flutter doesn't expose to tests, so a
+      // simulated drag is exactly as fragile as it sounds and was, in fact,
+      // tried here first and abandoned as unreliable. What's actually under
+      // test - the cubit call, the persisted `order` values, the re-render -
+      // is unaffected by which of the two triggers it.
+      final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
+      await h.addTask('alpha');
+      await h.openDetail('alpha');
+      await h.addSubtask('wash dishes');
+      await h.addSubtask('buy milk');
+      expect((await h.subtasksOf('alpha')).map((s) => s.title), [
+        'wash dishes',
+        'buy milk',
+      ]);
 
-    tester.widget<ReorderableListView>(find.byType(ReorderableListView)).onReorder(0, 2);
-    await h.settle();
+      tester
+          .widget<ReorderableListView>(find.byType(ReorderableListView))
+          .onReorder(0, 2);
+      await h.settle();
 
-    final subtasks = await h.subtasksOf('alpha');
-    expect(subtasks.map((s) => s.title), ['buy milk', 'wash dishes']);
-    expect(subtasks.map((s) => s.order), [0, 1]);
-  });
+      final subtasks = await h.subtasksOf('alpha');
+      expect(subtasks.map((s) => s.title), ['buy milk', 'wash dishes']);
+      expect(subtasks.map((s) => s.order), [0, 1]);
+    },
+  );
 }

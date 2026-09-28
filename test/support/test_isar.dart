@@ -7,9 +7,8 @@ import 'package:santian/tasks/models/task_list.dart';
 /// Loads Isar's native library once. Locally it is fetched on first run. In CI
 /// it is pre-placed and hash-verified (see ci.yml), so never download an
 /// unchecked copy there.
-Future<void> initIsarCoreForTests() => Isar.initializeIsarCore(
-      download: Platform.environment['CI'] != 'true',
-    );
+Future<void> initIsarCoreForTests() =>
+    Isar.initializeIsarCore(download: Platform.environment['CI'] != 'true');
 
 /// An Isar in a throwaway directory, deleted by [close].
 class TestIsar {

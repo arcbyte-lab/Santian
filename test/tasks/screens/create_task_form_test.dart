@@ -44,22 +44,30 @@ Future<_Calls> _pump(
   return calls;
 }
 
-Finder _circle() => find.byWidgetPredicate((w) =>
-    w is Container &&
-    w.decoration is BoxDecoration &&
-    (w.decoration as BoxDecoration).shape == BoxShape.circle);
+Finder _circle() => find.byWidgetPredicate(
+  (w) =>
+      w is Container &&
+      w.decoration is BoxDecoration &&
+      (w.decoration as BoxDecoration).shape == BoxShape.circle,
+);
 
 void main() {
-  testWidgets('shows the compose placeholder, the actions, and no notes field', (tester) async {
-    await _pump(tester);
+  testWidgets(
+    'shows the compose placeholder, the actions, and no notes field',
+    (tester) async {
+      await _pump(tester);
 
-    expect(find.text('What needs to be done?'), findsOneWidget);
-    expect(find.byType(TextField), findsOneWidget);
-    expect(find.text('Add details'), findsNothing);
-    expect(find.bySemanticsLabel('Add details'), findsOneWidget); // the toggle
-    expect(find.bySemanticsLabel('Set date and time'), findsOneWidget);
-    expect(find.bySemanticsLabel('Star'), findsOneWidget);
-  });
+      expect(find.text('What needs to be done?'), findsOneWidget);
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.text('Add details'), findsNothing);
+      expect(
+        find.bySemanticsLabel('Add details'),
+        findsOneWidget,
+      ); // the toggle
+      expect(find.bySemanticsLabel('Set date and time'), findsOneWidget);
+      expect(find.bySemanticsLabel('Star'), findsOneWidget);
+    },
+  );
 
   testWidgets('has no subtask entry point', (tester) async {
     await _pump(tester);
@@ -68,7 +76,9 @@ void main() {
     expect(find.bySemanticsLabel(RegExp('ubtask')), findsNothing);
   });
 
-  testWidgets('the title field takes focus as soon as the sheet opens', (tester) async {
+  testWidgets('the title field takes focus as soon as the sheet opens', (
+    tester,
+  ) async {
     await _pump(tester);
     await tester.pump();
 
@@ -104,23 +114,33 @@ void main() {
     expect(field.focusNode.hasFocus, isTrue);
   });
 
-  testWidgets('the notes field appears when the state says so, and reports typing', (tester) async {
-    final calls = await _pump(tester, state: const CreateTaskState(notesVisible: true));
+  testWidgets(
+    'the notes field appears when the state says so, and reports typing',
+    (tester) async {
+      final calls = await _pump(
+        tester,
+        state: const CreateTaskState(notesVisible: true),
+      );
 
-    expect(find.text('Add details'), findsOneWidget); // the placeholder
-    expect(find.byType(TextField), findsNWidgets(2));
+      expect(find.text('Add details'), findsOneWidget); // the placeholder
+      expect(find.byType(TextField), findsNWidgets(2));
 
-    await tester.enterText(find.byType(TextField).last, 'some details');
+      await tester.enterText(find.byType(TextField).last, 'some details');
 
-    expect(calls.notes.last, 'some details');
-  });
+      expect(calls.notes.last, 'some details');
+    },
+  );
 
   testWidgets('revealing the notes field moves focus into it', (tester) async {
     await _pump(tester);
     await tester.pump();
     List<EditableText> fields() =>
         tester.widgetList<EditableText>(find.byType(EditableText)).toList();
-    expect(fields().single.focusNode.hasFocus, isTrue, reason: 'the title starts focused');
+    expect(
+      fields().single.focusNode.hasFocus,
+      isTrue,
+      reason: 'the title starts focused',
+    );
 
     await _pump(tester, state: const CreateTaskState(notesVisible: true));
     await tester.pump();
@@ -130,27 +150,36 @@ void main() {
     expect(title.focusNode.hasFocus, isFalse);
   });
 
-  testWidgets('text typed after revealing notes goes to the notes, not the title', (tester) async {
-    final before = await _pump(tester);
-    await tester.pump();
-    tester.testTextInput.enterText('Buy milk');
-    expect(before.titles.last, 'Buy milk', reason: 'the title has focus at first');
+  testWidgets(
+    'text typed after revealing notes goes to the notes, not the title',
+    (tester) async {
+      final before = await _pump(tester);
+      await tester.pump();
+      tester.testTextInput.enterText('Buy milk');
+      expect(
+        before.titles.last,
+        'Buy milk',
+        reason: 'the title has focus at first',
+      );
 
-    // The state now shows the notes field; each _pump installs fresh callbacks.
-    final after = await _pump(
-      tester,
-      state: const CreateTaskState(title: 'Buy milk', notesVisible: true),
-    );
-    await tester.pump();
+      // The state now shows the notes field; each _pump installs fresh callbacks.
+      final after = await _pump(
+        tester,
+        state: const CreateTaskState(title: 'Buy milk', notesVisible: true),
+      );
+      await tester.pump();
 
-    // Typed into whichever field has focus, as a person at the keyboard would.
-    tester.testTextInput.enterText('oat milk if they have it');
+      // Typed into whichever field has focus, as a person at the keyboard would.
+      tester.testTextInput.enterText('oat milk if they have it');
 
-    expect(after.notes.last, 'oat milk if they have it');
-    expect(after.titles, isEmpty, reason: 'nothing more may reach the title');
-  });
+      expect(after.notes.last, 'oat milk if they have it');
+      expect(after.titles, isEmpty, reason: 'nothing more may reach the title');
+    },
+  );
 
-  testWidgets('tapping the notes and star icons calls their toggles', (tester) async {
+  testWidgets('tapping the notes and star icons calls their toggles', (
+    tester,
+  ) async {
     final calls = await _pump(tester);
 
     await tester.tap(find.bySemanticsLabel('Add details'));
@@ -175,7 +204,9 @@ void main() {
     );
   });
 
-  testWidgets('the notes icon is tinted only while notes are showing', (tester) async {
+  testWidgets('the notes icon is tinted only while notes are showing', (
+    tester,
+  ) async {
     final primary = AppTheme.light.colorScheme.primary;
     final muted = AppTheme.light.extension<AppColors>()!.mutedForeground;
 
@@ -186,7 +217,9 @@ void main() {
     expect(tester.widget<Icon>(find.byIcon(Icons.notes)).color, primary);
   });
 
-  testWidgets('the date and time icon opens the picker and reports the pick', (tester) async {
+  testWidgets('the date and time icon opens the picker and reports the pick', (
+    tester,
+  ) async {
     final calls = await _pump(tester);
 
     await tester.tap(find.bySemanticsLabel('Set date and time'));
@@ -198,32 +231,52 @@ void main() {
     expect(calls.toggleNotes + calls.toggleStar + calls.submits, 0);
   });
 
-  testWidgets('the date and time icon is tinted once a reminder is set', (tester) async {
+  testWidgets('the date and time icon is tinted once a reminder is set', (
+    tester,
+  ) async {
     final primary = AppTheme.light.colorScheme.primary;
     final muted = AppTheme.light.extension<AppColors>()!.mutedForeground;
 
     await _pump(tester);
     expect(tester.widget<Icon>(find.byIcon(Icons.schedule)).color, muted);
 
-    await _pump(tester, state: CreateTaskState(reminderAt: DateTime(2026, 9, 21, 9)));
+    await _pump(
+      tester,
+      state: CreateTaskState(reminderAt: DateTime(2026, 9, 21, 9)),
+    );
     expect(tester.widget<Icon>(find.byIcon(Icons.schedule)).color, primary);
   });
 
-  testWidgets('the compose circle is outlined in primary once there is a title', (tester) async {
-    await _pump(tester);
-    var box = tester.widget<Container>(_circle()).decoration as BoxDecoration;
-    expect((box.border as Border).top.color, AppTheme.light.colorScheme.outline);
+  testWidgets(
+    'the compose circle is outlined in primary once there is a title',
+    (tester) async {
+      await _pump(tester);
+      var box = tester.widget<Container>(_circle()).decoration as BoxDecoration;
+      expect(
+        (box.border as Border).top.color,
+        AppTheme.light.colorScheme.outline,
+      );
 
-    await _pump(tester, state: const CreateTaskState(title: 'x'));
-    box = tester.widget<Container>(_circle()).decoration as BoxDecoration;
-    expect((box.border as Border).top.color, AppTheme.light.colorScheme.primary);
-  });
+      await _pump(tester, state: const CreateTaskState(title: 'x'));
+      box = tester.widget<Container>(_circle()).decoration as BoxDecoration;
+      expect(
+        (box.border as Border).top.color,
+        AppTheme.light.colorScheme.primary,
+      );
+    },
+  );
 
   for (final brightness in [Brightness.light, Brightness.dark]) {
-    testWidgets('renders without errors in ${brightness.name} mode', (tester) async {
+    testWidgets('renders without errors in ${brightness.name} mode', (
+      tester,
+    ) async {
       await _pump(
         tester,
-        state: const CreateTaskState(title: 'x', notesVisible: true, isStarred: true),
+        state: const CreateTaskState(
+          title: 'x',
+          notesVisible: true,
+          isStarred: true,
+        ),
         theme: brightness == Brightness.light ? AppTheme.light : AppTheme.dark,
       );
 

@@ -7,7 +7,10 @@ import 'package:santian/core/theme/app_radius.dart';
 import 'package:santian/core/theme/app_shadows.dart';
 import 'package:santian/core/theme/app_theme.dart';
 
-Future<ThemeData> _themeUnder(WidgetTester tester, Brightness brightness) async {
+Future<ThemeData> _themeUnder(
+  WidgetTester tester,
+  Brightness brightness,
+) async {
   tester.platformDispatcher.platformBrightnessTestValue = brightness;
   addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
   await tester.pumpWidget(const SantianApp(home: Scaffold()));
@@ -64,29 +67,41 @@ void main() {
     test('lerp blends between light and dark', () {
       final mid = AppColors.light.lerp(AppColors.dark, 0.5);
 
-      expect(mid.muted, Color.lerp(AppColors.light.muted, AppColors.dark.muted, 0.5));
+      expect(
+        mid.muted,
+        Color.lerp(AppColors.light.muted, AppColors.dark.muted, 0.5),
+      );
       expect(AppColors.light.lerp(null, 0.5), AppColors.light);
     });
   });
 
   group('fonts', () {
     for (final theme in [AppTheme.light, AppTheme.dark]) {
-      test('DM Sans for chrome and actions, Inter for the rest (${theme.brightness.name})', () {
-        final text = theme.textTheme;
+      test(
+        'DM Sans for chrome and actions, Inter for the rest (${theme.brightness.name})',
+        () {
+          final text = theme.textTheme;
 
-        expect(text.titleLarge!.fontFamily, 'DMSans');
-        expect(text.labelLarge!.fontFamily, 'DMSans');
-        expect(text.bodyMedium!.fontFamily, 'Inter');
-        expect(text.bodySmall!.fontFamily, 'Inter');
-      });
+          expect(text.titleLarge!.fontFamily, 'DMSans');
+          expect(text.labelLarge!.fontFamily, 'DMSans');
+          expect(text.bodyMedium!.fontFamily, 'Inter');
+          expect(text.bodySmall!.fontFamily, 'Inter');
+        },
+      );
     }
 
     test('every bundled font file loads', () async {
       TestWidgetsFlutterBinding.ensureInitialized();
       for (final family in ['DMSans', 'Inter']) {
         for (final weight in ['Regular', 'Medium', 'SemiBold', 'Bold']) {
-          final data = await rootBundle.load('assets/fonts/$family-$weight.ttf');
-          expect(data.lengthInBytes, greaterThan(10000), reason: '$family-$weight');
+          final data = await rootBundle.load(
+            'assets/fonts/$family-$weight.ttf',
+          );
+          expect(
+            data.lengthInBytes,
+            greaterThan(10000),
+            reason: '$family-$weight',
+          );
         }
       }
     });

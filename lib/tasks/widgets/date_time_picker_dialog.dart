@@ -24,7 +24,8 @@ Future<({DateTime dateTime, Repeat? repeat})?> showDateTimePickerDialog(
 }) {
   return showDialog(
     context: context,
-    builder: (_) => DateTimePickerDialog(initial: initial, initialRepeat: initialRepeat),
+    builder: (_) =>
+        DateTimePickerDialog(initial: initial, initialRepeat: initialRepeat),
   );
 }
 
@@ -69,7 +70,13 @@ class _DateTimePickerDialogState extends State<DateTimePickerDialog> {
   void _done() {
     final time = _time ?? defaultReminderTime;
     Navigator.of(context).pop((
-      dateTime: DateTime(_date.year, _date.month, _date.day, time.hour, time.minute),
+      dateTime: DateTime(
+        _date.year,
+        _date.month,
+        _date.day,
+        time.hour,
+        time.minute,
+      ),
       repeat: _repeat,
     ));
   }
@@ -100,7 +107,10 @@ class _DateTimePickerDialogState extends State<DateTimePickerDialog> {
             InkWell(
               onTap: _pickTime,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Row(
                   children: [
                     Icon(Icons.schedule, size: 20, color: muted),
@@ -132,7 +142,9 @@ class _DateTimePickerDialogState extends State<DateTimePickerDialog> {
                             const SizedBox(width: 16),
                             Expanded(
                               child: Text(
-                                _repeat == null ? 'Repeat' : summarizeRepeat(_repeat!),
+                                _repeat == null
+                                    ? 'Repeat'
+                                    : summarizeRepeat(_repeat!),
                                 style: theme.textTheme.bodyMedium!.copyWith(
                                   fontSize: 15,
                                   color: scheme.onSurface,

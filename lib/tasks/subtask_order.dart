@@ -32,7 +32,5 @@ List<Subtask> applySubtaskReorder(
   final moved = sorted.removeAt(oldIndex);
   final insertAt = oldIndex < newIndex ? newIndex - 1 : newIndex;
   sorted.insert(insertAt, moved);
-  return [
-    for (var i = 0; i < sorted.length; i++) sorted[i].copyWith(order: i),
-  ];
+  return [for (var i = 0; i < sorted.length; i++) sorted[i].copyWith(order: i)];
 }

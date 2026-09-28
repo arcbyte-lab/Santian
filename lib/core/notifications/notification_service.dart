@@ -13,7 +13,12 @@ abstract class NotificationService {
   /// Schedules a one-time notification with [id], firing at [at], titled
   /// [title] with an optional [body]. Replaces any existing notification
   /// already scheduled with the same [id].
-  Future<void> schedule(int id, {required DateTime at, required String title, String? body});
+  Future<void> schedule(
+    int id, {
+    required DateTime at,
+    required String title,
+    String? body,
+  });
 
   /// Cancels the notification with [id], if one is scheduled. Does nothing
   /// if there isn't one.

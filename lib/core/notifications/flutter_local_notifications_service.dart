@@ -23,7 +23,8 @@ const _notificationDetails = NotificationDetails(android: _androidDetails);
 /// first launch never shows a permission prompt before the user has set
 /// anything that needs one.
 class FlutterLocalNotificationsService implements NotificationService {
-  FlutterLocalNotificationsService() : _plugin = FlutterLocalNotificationsPlugin();
+  FlutterLocalNotificationsService()
+    : _plugin = FlutterLocalNotificationsPlugin();
 
   final FlutterLocalNotificationsPlugin _plugin;
   var _permissionsRequested = false;
@@ -71,13 +72,21 @@ class FlutterLocalNotificationsService implements NotificationService {
   Future<void> _ensurePermissions() async {
     if (_permissionsRequested) return;
     _permissionsRequested = true;
-    final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     await android?.requestNotificationsPermission();
     await android?.requestExactAlarmsPermission();
   }
 
   @override
-  Future<void> schedule(int id, {required DateTime at, required String title, String? body}) async {
+  Future<void> schedule(
+    int id, {
+    required DateTime at,
+    required String title,
+    String? body,
+  }) async {
     await _ensurePermissions();
     await _plugin.zonedSchedule(
       id: id,
