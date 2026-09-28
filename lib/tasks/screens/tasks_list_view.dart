@@ -221,7 +221,7 @@ class _ListMenu extends StatelessWidget {
 }
 
 class _RootCardLabel extends StatelessWidget {
-  const _RootCardLabel({super.key, required this.text});
+  const _RootCardLabel({required this.text});
 
   final String text;
 

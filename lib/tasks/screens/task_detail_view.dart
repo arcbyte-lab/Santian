@@ -137,8 +137,9 @@ class _TaskDetailViewState extends State<TaskDetailView> {
       initial: widget.state.task.reminderAt,
       initialRepeat: widget.state.task.repeat,
     );
-    if (picked != null)
+    if (picked != null) {
       widget.onReminderChanged(picked.dateTime, repeat: picked.repeat);
+    }
   }
 
   Future<void> _pickDeadline(BuildContext context) async {

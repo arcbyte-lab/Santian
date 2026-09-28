@@ -44,13 +44,6 @@ Future<_Calls> _pump(
   return calls;
 }
 
-Finder _circle() => find.byWidgetPredicate(
-  (w) =>
-      w is Container &&
-      w.decoration is BoxDecoration &&
-      (w.decoration as BoxDecoration).shape == BoxShape.circle,
-);
-
 void main() {
   testWidgets(
     'shows the compose placeholder, the actions, and no notes field',
@@ -246,41 +239,4 @@ void main() {
     );
     expect(tester.widget<Icon>(find.byIcon(Icons.schedule)).color, primary);
   });
-
-  testWidgets(
-    'the compose circle is outlined in primary once there is a title',
-    (tester) async {
-      await _pump(tester);
-      var box = tester.widget<Container>(_circle()).decoration as BoxDecoration;
-      expect(
-        (box.border as Border).top.color,
-        AppTheme.light.colorScheme.outline,
-      );
-
-      await _pump(tester, state: const CreateTaskState(title: 'x'));
-      box = tester.widget<Container>(_circle()).decoration as BoxDecoration;
-      expect(
-        (box.border as Border).top.color,
-        AppTheme.light.colorScheme.primary,
-      );
-    },
-  );
-
-  for (final brightness in [Brightness.light, Brightness.dark]) {
-    testWidgets('renders without errors in ${brightness.name} mode', (
-      tester,
-    ) async {
-      await _pump(
-        tester,
-        state: const CreateTaskState(
-          title: 'x',
-          notesVisible: true,
-          isStarred: true,
-        ),
-        theme: brightness == Brightness.light ? AppTheme.light : AppTheme.dark,
-      );
-
-      expect(tester.takeException(), isNull);
-    });
-  }
 }

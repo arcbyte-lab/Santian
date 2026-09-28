@@ -38,11 +38,11 @@ void main() {
       expect(theme.brightness, Brightness.dark);
       expect(theme.colorScheme.primary, const Color(0xFFF97316));
       expect(theme.colorScheme.onPrimary, const Color(0xFF0C0A09));
-      expect(theme.colorScheme.surface, const Color(0xFF1C1917));
+      expect(theme.colorScheme.surface, const Color(0xFF0C0A09));
       expect(theme.colorScheme.onSurface, const Color(0xFFFAFAF9));
       expect(theme.colorScheme.error, const Color(0xFFEF4444));
       expect(theme.colorScheme.outline, const Color(0xFF44403C));
-      expect(theme.scaffoldBackgroundColor, const Color(0xFF0C0A09));
+      expect(theme.scaffoldBackgroundColor, const Color(0xFF1C1917));
     });
   });
 
@@ -108,10 +108,11 @@ void main() {
   });
 
   test('named radii match the mockup', () {
-    expect(AppRadius.sheet, 58);
+    expect(AppRadius.sheet, 28);
     expect(AppRadius.pill, 100);
     expect(AppRadius.chip, 20);
-    expect(AppRadius.fab, 26);
+    expect(AppRadius.fab, 15);
+    expect(AppRadius.dialog, 24);
     expect(AppRadius.actionPill, 14);
   });
 

@@ -122,8 +122,9 @@ class TaskRepository {
       if (completing && repeat != null) {
         stored.reminderAt = nextOccurrence(stored.reminderAt!, repeat);
         final deadline = stored.deadline;
-        if (deadline != null)
+        if (deadline != null) {
           stored.deadline = nextOccurrence(deadline, repeat);
+        }
         stored.isCompleted = false;
       } else {
         stored.isCompleted = completing;
