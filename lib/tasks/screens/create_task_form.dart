@@ -46,8 +46,9 @@ class _CreateTaskFormState extends State<CreateTaskForm> {
       initial: widget.state.reminderAt,
       initialRepeat: widget.state.repeat,
     );
-    if (picked != null)
+    if (picked != null) {
       widget.onReminderChanged(picked.dateTime, picked.repeat);
+    }
   }
 
   @override
