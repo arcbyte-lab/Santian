@@ -24,11 +24,13 @@ class TasksListScreen extends StatelessWidget {
       ),
       child: BlocBuilder<TasksListCubit, TasksListState>(
         builder: (context, state) {
+          final cubit = context.read<TasksListCubit>();
           final listId = state.createListId;
           return TasksListView(
             state: state,
-            onTabSelected: context.read<TasksListCubit>().selectTab,
-            onToggleTask: context.read<TasksListCubit>().toggleCompleted,
+            onTabSelected: cubit.selectTab,
+            onToggleTask: cubit.toggleCompleted,
+            onToggleStar: cubit.toggleStarred,
             onOpenTask: (task) => showTaskDetailSheet(context, task: task),
             onCreateTask: listId == null
                 ? null
@@ -37,12 +39,112 @@ class TasksListScreen extends StatelessWidget {
               final id = await showCreateListSheet(context);
               // The new tab is inserted before `+` and selected.
               if (id != null && context.mounted) {
-                context.read<TasksListCubit>().selectTab(ListTab(id));
+                cubit.selectTab(ListTab(id));
+              }
+            },
+            onRenameList: (list) async {
+              final name = await showDialog<String>(
+                context: context,
+                builder: (_) => _RenameListDialog(name: list.name),
+              );
+              if (name != null) await cubit.renameList(list.id, name);
+            },
+            onDeleteList: (list) async {
+              if (await _confirm(
+                context,
+                title: 'Delete "${list.name}"?',
+                body: 'All tasks in this list will be deleted.',
+              )) {
+                await cubit.deleteList(list.id);
+              }
+            },
+            onDeleteCompletedTasks: (list) async {
+              if (await _confirm(
+                context,
+                title: 'Delete all completed tasks?',
+                body: 'Completed tasks in "${list.name}" will be deleted.',
+              )) {
+                await cubit.deleteCompletedTasks(list.id);
               }
             },
           );
         },
       ),
+    );
+  }
+}
+
+/// A Delete/Cancel dialog; true only when Delete is tapped. Unlike a single
+/// Task's delete, these remove many Tasks at once and have no undo.
+Future<bool> _confirm(
+  BuildContext context, {
+  required String title,
+  required String body,
+}) async =>
+    await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    ) ??
+    false;
+
+/// Pops with the new name, or nothing if cancelled. Save is disabled while
+/// the name is blank, same rule as Create List.
+class _RenameListDialog extends StatefulWidget {
+  const _RenameListDialog({required this.name});
+
+  final String name;
+
+  @override
+  State<_RenameListDialog> createState() => _RenameListDialogState();
+}
+
+class _RenameListDialogState extends State<_RenameListDialog> {
+  late final _name = TextEditingController(text: widget.name);
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    if (_name.text.trim().isNotEmpty) Navigator.pop(context, _name.text.trim());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Rename list'),
+      content: TextField(
+        controller: _name,
+        autofocus: true,
+        textCapitalization: TextCapitalization.words,
+        onChanged: (_) => setState(() {}),
+        onSubmitted: (_) => _save(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: _name.text.trim().isEmpty ? null : _save,
+          child: const Text('Save'),
+        ),
+      ],
     );
   }
 }

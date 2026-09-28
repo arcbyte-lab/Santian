@@ -5,8 +5,11 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
 import '../cubits/tasks_list_state.dart';
 import '../models/task.dart';
+import '../models/task_list.dart';
+import '../task_order.dart';
 import '../widgets/create_task_fab.dart';
 import '../widgets/list_tab_bar.dart';
+import '../widgets/month_grid.dart';
 import '../widgets/task_row.dart';
 
 /// The Tasks List screen as a pure function of [state]. Kept apart from the
@@ -17,9 +20,13 @@ class TasksListView extends StatelessWidget {
     required this.state,
     required this.onTabSelected,
     this.onToggleTask,
+    this.onToggleStar,
     this.onOpenTask,
     this.onCreateTask,
     this.onAddList,
+    this.onRenameList,
+    this.onDeleteList,
+    this.onDeleteCompletedTasks,
   });
 
   final TasksListState state;
@@ -31,6 +38,9 @@ class TasksListView extends StatelessWidget {
   /// Called with a Task whose checkbox was tapped. Null leaves checkboxes inert.
   final ValueChanged<Task>? onToggleTask;
 
+  /// Called with a Task whose star was tapped. Null leaves stars inert.
+  final ValueChanged<Task>? onToggleStar;
+
   /// Called with a Task whose row was tapped outside the checkbox. Null
   /// leaves that area inert.
   final ValueChanged<Task>? onOpenTask;
@@ -38,20 +48,56 @@ class TasksListView extends StatelessWidget {
   /// Called when the FAB is tapped. Null disables it.
   final VoidCallback? onCreateTask;
 
+  /// The active List's menu items, each called with that List. The menu only
+  /// shows while a List (not Star) is active.
+  final ValueChanged<TaskList>? onRenameList;
+  final ValueChanged<TaskList>? onDeleteList;
+  final ValueChanged<TaskList>? onDeleteCompletedTasks;
+
+  TaskList? get _activeList => switch (state.activeTab) {
+    ListTab(:final listId) =>
+      state.lists.where((l) => l.id == listId).firstOrNull,
+    _ => null,
+  };
+
   Widget _page(TasksTab tab) {
     final tasks = state.tasksFor(tab);
-    if (tasks.isEmpty && !state.isLoading) return const _EmptyTasks();
-    return ListView.builder(
-      itemCount: tasks.length,
-      itemBuilder: (_, i) {
-        final task = tasks[i];
-        return TaskRow(
-          task: task,
-          onToggle: onToggleTask == null ? null : () => onToggleTask!(task),
-          onOpenDetail: onOpenTask == null ? null : () => onOpenTask!(task),
-        );
-      },
+    final empty = tasks.isEmpty && !state.isLoading;
+    Widget row(Task task) => TaskRow(
+      task: task,
+      onToggle: onToggleTask == null ? null : () => onToggleTask!(task),
+      onToggleStar: onToggleStar == null ? null : () => onToggleStar!(task),
+      onOpenDetail: onOpenTask == null ? null : () => onOpenTask!(task),
     );
+    // Star stays one flat list; a List groups its completed Tasks below.
+    if (tab is! ListTab) {
+      if (empty) return const _EmptyTasks();
+      return ListView.builder(
+        itemCount: tasks.length,
+        itemBuilder: (_, i) => row(tasks[i]),
+      );
+    }
+    final completed = tasks.where((t) => t.isCompleted).toList();
+    final now = DateTime.now();
+    final list = ListView(
+      children: [
+        for (final (label, group) in groupRuns(
+          tasks.where((t) => !t.isCompleted),
+          (t) => dayHeaderLabel(t.reminderAt, now),
+        )) ...[
+          _DayHeader(label: label),
+          for (final t in group) row(t),
+        ],
+        // Always shown on a List, even at (0).
+        _CompletedSection(
+          // Keeps each List's collapsed/expanded choice across tab swipes.
+          key: PageStorageKey('completed-${tab.listId}'),
+          count: completed.length,
+          children: [for (final t in completed) row(t)],
+        ),
+      ],
+    );
+    return empty ? Stack(children: [const _EmptyTasks(), list]) : list;
   }
 
   @override
@@ -71,7 +117,39 @@ class TasksListView extends StatelessWidget {
                 children: [
                   Column(
                     children: [
-                      RootCardLabel(text: "Tasks"),
+                      // Fixed, so the header doesn't change height when
+                      // Star (no menu) is active.
+                      SizedBox(
+                        height: 48,
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 48),
+                            const Expanded(
+                              child: Center(
+                                child: _RootCardLabel(text: 'Tasks'),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 48,
+                              child: switch (_activeList) {
+                                final list? => _ListMenu(
+                                  // The last List can't go: the FAB always
+                                  // needs a List to create into.
+                                  onRename: _bind(onRenameList, list),
+                                  onDelete: state.lists.length > 1
+                                      ? _bind(onDeleteList, list)
+                                      : null,
+                                  onDeleteCompleted:
+                                      state.tasks.any((t) => t.isCompleted)
+                                      ? _bind(onDeleteCompletedTasks, list)
+                                      : null,
+                                ),
+                                null => null,
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
                       Expanded(
                         child: _TabPages(
                           tabs: state.tabs,
@@ -104,8 +182,46 @@ class TasksListView extends StatelessWidget {
   }
 }
 
-class RootCardLabel extends StatelessWidget {
-  const RootCardLabel({super.key, required this.text});
+VoidCallback? _bind(ValueChanged<TaskList>? f, TaskList list) =>
+    f == null ? null : () => f(list);
+
+/// The active List's `More` menu. A null callback disables its item.
+class _ListMenu extends StatelessWidget {
+  const _ListMenu({this.onRename, this.onDelete, this.onDeleteCompleted});
+
+  final VoidCallback? onRename;
+  final VoidCallback? onDelete;
+  final VoidCallback? onDeleteCompleted;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).extension<AppColors>()!.mutedForeground;
+    return PopupMenuButton<void>(
+      icon: Icon(Icons.more_vert, color: muted),
+      tooltip: 'List options',
+      itemBuilder: (context) => [
+        PopupMenuItem<void>(
+          enabled: onRename != null,
+          onTap: onRename,
+          child: const Text('Rename list'),
+        ),
+        PopupMenuItem<void>(
+          enabled: onDelete != null,
+          onTap: onDelete,
+          child: const Text('Delete list'),
+        ),
+        PopupMenuItem<void>(
+          enabled: onDeleteCompleted != null,
+          onTap: onDeleteCompleted,
+          child: const Text('Delete all completed tasks'),
+        ),
+      ],
+    );
+  }
+}
+
+class _RootCardLabel extends StatelessWidget {
+  const _RootCardLabel({super.key, required this.text});
 
   final String text;
 
@@ -115,10 +231,90 @@ class RootCardLabel extends StatelessWidget {
       padding: const EdgeInsets.only(top: 14),
       child: Text(
         text,
-        style: Theme.of(context).textTheme.titleLarge!.copyWith(
+        style: Theme.of(
+          context,
+        ).textTheme.titleLarge!.copyWith(fontWeight: FontWeight.w500),
+      ),
+    );
+  }
+}
+
+const pastLabel = 'Past';
+
+/// A day header's text: Past for anything before today, Today, Tomorrow,
+/// else [formatShortDate]. Null [day] is the Tasks with no reminder: "No
+/// date".
+String dayHeaderLabel(DateTime? day, DateTime now) {
+  if (day == null) return 'No date';
+  final diff = calendarDaysFrom(now, day);
+  if (diff < 0) return pastLabel;
+  switch (diff) {
+    case 0:
+      return 'Today';
+    case 1:
+      return 'Tomorrow';
+  }
+  return formatShortDate(day, now);
+}
+
+/// Heads one run of open Tasks; [label] is from [dayHeaderLabel]. Past is
+/// error-colored, like the overdue dates in its rows.
+class _DayHeader extends StatelessWidget {
+  const _DayHeader({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 4),
+      child: Text(
+        label,
+        style: theme.textTheme.bodyMedium!.copyWith(
+          fontSize: 14,
           fontWeight: FontWeight.w500,
+          color: label == pastLabel
+              ? theme.colorScheme.error
+              : theme.extension<AppColors>()!.mutedForeground,
         ),
       ),
+    );
+  }
+}
+
+/// A List's completed Tasks under a "Completed (N)" header, expanded until
+/// the header is tapped.
+class _CompletedSection extends StatelessWidget {
+  const _CompletedSection({
+    super.key,
+    required this.count,
+    required this.children,
+  });
+
+  final int count;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.extension<AppColors>()!.mutedForeground;
+    return ExpansionTile(
+      initiallyExpanded: true,
+      tilePadding: const EdgeInsets.symmetric(horizontal: 24),
+      shape: const Border(),
+      collapsedShape: const Border(),
+      iconColor: muted,
+      collapsedIconColor: muted,
+      title: Text(
+        'Completed ($count)',
+        style: theme.textTheme.bodyMedium!.copyWith(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: muted,
+        ),
+      ),
+      children: children,
     );
   }
 }
@@ -209,9 +405,9 @@ class _TabPagesState extends State<_TabPages> {
           curve: Curves.easeOutCubic,
         )
         .whenComplete(() {
-      _animating = false;
-      if (mounted) _followActiveTab();
-    });
+          _animating = false;
+          if (mounted) _followActiveTab();
+        });
   }
 
   @override

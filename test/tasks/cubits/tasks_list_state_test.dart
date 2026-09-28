@@ -4,9 +4,7 @@ import 'package:santian/tasks/models/task_list.dart';
 
 TaskList _list(int id) => TaskList()
   ..id = id
-  ..name = 'List $id'
-  ..icon = 'rocket'
-  ..color = 1;
+  ..name = 'List $id';
 
 void main() {
   group('createListId', () {
@@ -38,15 +36,18 @@ void main() {
       expect(state.createListId, 4);
     });
 
-    test('on Star with a remembered List that no longer exists is the first List', () {
-      final state = TasksListState(
-        lists: [_list(4), _list(5)],
-        activeTab: const StarredTab(),
-        lastListId: 99,
-      );
+    test(
+      'on Star with a remembered List that no longer exists is the first List',
+      () {
+        final state = TasksListState(
+          lists: [_list(4), _list(5)],
+          activeTab: const StarredTab(),
+          lastListId: 99,
+        );
 
-      expect(state.createListId, 4);
-    });
+        expect(state.createListId, 4);
+      },
+    );
 
     test('with no active tab is the first List, if any', () {
       expect(TasksListState(lists: [_list(3)]).createListId, 3);

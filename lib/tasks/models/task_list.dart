@@ -9,10 +9,4 @@ class TaskList {
   Id id = Isar.autoIncrement;
 
   late String name;
-
-  /// Lucide icon identifier, e.g. "rocket", matched to a widget client-side.
-  late String icon;
-
-  /// ARGB int, built with `Color(value)`.
-  late int color;
 }

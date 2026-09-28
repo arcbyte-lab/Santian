@@ -20,9 +20,13 @@ Future<TasksListState> until(
 ) async {
   if (test(cubit.state)) return cubit.state;
   try {
-    return await cubit.stream.firstWhere(test).timeout(const Duration(seconds: 5));
+    return await cubit.stream
+        .firstWhere(test)
+        .timeout(const Duration(seconds: 5));
   } on TimeoutException {
-    throw TestFailure('Timed out waiting for a state. Last state: ${describe(cubit.state)}');
+    throw TestFailure(
+      'Timed out waiting for a state. Last state: ${describe(cubit.state)}',
+    );
   }
 }
 
@@ -44,12 +48,8 @@ void main() {
   late Isar isar;
   late TasksListCubit cubit;
 
-  Future<int> addList(String name) => isar.writeTxn(() => isar.taskLists.put(
-        TaskList()
-          ..name = name
-          ..icon = 'rocket'
-          ..color = 0xFF0284C7,
-      ));
+  Future<int> addList(String name) =>
+      isar.writeTxn(() => isar.taskLists.put(TaskList()..name = name));
 
   Future<int> addTask(
     int listId,
@@ -57,21 +57,21 @@ void main() {
     DateTime? at,
     bool starred = false,
     bool done = false,
-  }) =>
-      isar.writeTxn(() => isar.tasks.put(
-            Task()
-              ..listId = listId
-              ..title = title
-              ..reminderAt = at
-              ..isStarred = starred
-              ..isCompleted = done,
-          ));
+  }) => isar.writeTxn(
+    () => isar.tasks.put(
+      Task()
+        ..listId = listId
+        ..title = title
+        ..reminderAt = at
+        ..isStarred = starred
+        ..isCompleted = done,
+    ),
+  );
 
-  TasksListCubit newCubit() =>
-      TasksListCubit(
-        tasks: TaskRepository(isar, notifications: FakeNotificationService()),
-        lists: ListRepository(isar),
-      );
+  TasksListCubit newCubit() => TasksListCubit(
+    tasks: TaskRepository(isar, notifications: FakeNotificationService()),
+    lists: ListRepository(isar),
+  );
 
   setUp(() async {
     db = await TestIsar.open();
@@ -89,7 +89,10 @@ void main() {
   test('with no Lists, a default one is created and made active', () async {
     cubit = newCubit();
 
-    final state = await until(cubit, (s) => !s.isLoading && s.activeTab != null);
+    final state = await until(
+      cubit,
+      (s) => !s.isLoading && s.activeTab != null,
+    );
 
     expect(state.lists.map((l) => l.name), ['My Tasks']);
     expect(state.activeTab, ListTab(state.lists.single.id));
@@ -111,7 +114,7 @@ void main() {
     );
 
     expect(state.lists.map((l) => l.name), ['Personal Interest', 'My Tasks']);
-    expect(titles(state), ['earlier', 'later', 'no reminder', 'done']);
+    expect(titles(state), ['done', 'earlier', 'later', 'no reminder']);
   });
 
   test('selecting another List shows only that List\'s tasks', () async {
@@ -161,7 +164,10 @@ void main() {
     final afterAdd = await until(cubit, (s) => titles(s).length == 2);
     expect(titles(afterAdd), ['added later', 'existing']);
 
-    final existing = (await isar.tasks.filter().titleEqualTo('existing').findFirst())!;
+    final existing = (await isar.tasks
+        .filter()
+        .titleEqualTo('existing')
+        .findFirst())!;
     existing.isCompleted = true;
     await isar.writeTxn(() => isar.tasks.put(existing));
     final afterComplete = await until(
@@ -172,23 +178,26 @@ void main() {
     expect(afterComplete.tasks.last.isCompleted, isTrue);
   });
 
-  test('deleting the active List falls back to the first remaining one', () async {
-    final first = await addList('Personal Interest');
-    final second = await addList('My Tasks');
-    await addTask(first, 'in first');
-    cubit = newCubit();
-    await until(cubit, (s) => s.activeTab == ListTab(first) && !s.isLoading);
-    cubit.selectTab(ListTab(second));
-    await until(cubit, (s) => s.activeTab == ListTab(second));
+  test(
+    'deleting the active List falls back to the first remaining one',
+    () async {
+      final first = await addList('Personal Interest');
+      final second = await addList('My Tasks');
+      await addTask(first, 'in first');
+      cubit = newCubit();
+      await until(cubit, (s) => s.activeTab == ListTab(first) && !s.isLoading);
+      cubit.selectTab(ListTab(second));
+      await until(cubit, (s) => s.activeTab == ListTab(second));
 
-    await isar.writeTxn(() => isar.taskLists.delete(second));
+      await isar.writeTxn(() => isar.taskLists.delete(second));
 
-    final state = await until(
-      cubit,
-      (s) => s.activeTab == ListTab(first) && titles(s).isNotEmpty,
-    );
-    expect(state.lists.map((l) => l.id), [first]);
-  });
+      final state = await until(
+        cubit,
+        (s) => s.activeTab == ListTab(first) && titles(s).isNotEmpty,
+      );
+      expect(state.lists.map((l) => l.id), [first]);
+    },
+  );
 
   test('selecting the tab that is already active does nothing', () async {
     final list = await addList('Personal Interest');
@@ -204,42 +213,61 @@ void main() {
   });
 
   group('toggleCompleted', () {
-    test('a completed Task drops below the incomplete ones, and toggling again restores it', () async {
-      final list = await addList('Personal Interest');
-      await addTask(list, 'first', at: nine);
-      await addTask(list, 'second', at: ten);
-      await addTask(list, 'third');
-      cubit = newCubit();
-      final opened = await until(cubit, (s) => s.tasks.length == 3);
-      expect(titles(opened), ['first', 'second', 'third']);
+    test(
+      'a completed Task keeps its reminder-order place, and toggling again restores it',
+      () async {
+        final list = await addList('Personal Interest');
+        await addTask(list, 'first', at: nine);
+        await addTask(list, 'second', at: ten);
+        await addTask(list, 'third');
+        cubit = newCubit();
+        final opened = await until(cubit, (s) => s.tasks.length == 3);
+        expect(titles(opened), ['first', 'second', 'third']);
 
-      cubit.toggleCompleted(opened.tasks.first);
-      final completed = await until(cubit, (s) => s.tasks.any((t) => t.isCompleted));
+        cubit.toggleCompleted(opened.tasks.first);
+        final completed = await until(
+          cubit,
+          (s) => s.tasks.any((t) => t.isCompleted),
+        );
 
-      expect(titles(completed), ['second', 'third', 'first']);
-      expect(completed.tasks.last.isCompleted, isTrue);
+        expect(titles(completed), ['first', 'second', 'third']);
+        expect(completed.tasks.first.isCompleted, isTrue);
 
-      cubit.toggleCompleted(completed.tasks.last);
-      final restored = await until(cubit, (s) => s.tasks.every((t) => !t.isCompleted));
+        cubit.toggleCompleted(completed.tasks.first);
+        final restored = await until(
+          cubit,
+          (s) => s.tasks.every((t) => !t.isCompleted),
+        );
 
-      expect(titles(restored), ['first', 'second', 'third']);
-    });
+        expect(titles(restored), ['first', 'second', 'third']);
+      },
+    );
 
-    test('a completed starred Task stays under Star, in the completed position', () async {
-      final list = await addList('Personal Interest');
-      await addTask(list, 'plain starred', at: ten, starred: true);
-      await addTask(list, 'to complete', at: nine, starred: true);
-      cubit = newCubit();
-      await until(cubit, (s) => s.activeTab is ListTab && !s.isLoading);
-      cubit.selectTab(const StarredTab());
-      final onStar = await until(cubit, (s) => s.activeTab == const StarredTab() && s.tasks.length == 2);
-      expect(titles(onStar), ['to complete', 'plain starred']);
+    test(
+      'a completed starred Task stays under Star, in its reminder-order place',
+      () async {
+        final list = await addList('Personal Interest');
+        await addTask(list, 'plain starred', at: ten, starred: true);
+        await addTask(list, 'to complete', at: nine, starred: true);
+        cubit = newCubit();
+        await until(cubit, (s) => s.activeTab is ListTab && !s.isLoading);
+        cubit.selectTab(const StarredTab());
+        final onStar = await until(
+          cubit,
+          (s) => s.activeTab == const StarredTab() && s.tasks.length == 2,
+        );
+        expect(titles(onStar), ['to complete', 'plain starred']);
 
-      cubit.toggleCompleted(onStar.tasks.first);
-      final after = await until(cubit, (s) => s.tasks.any((t) => t.isCompleted));
+        cubit.toggleCompleted(onStar.tasks.first);
+        final after = await until(
+          cubit,
+          (s) => s.tasks.any((t) => t.isCompleted),
+        );
 
-      expect(titles(after), ['plain starred', 'to complete']);
-    });
+        expect(titles(after), ['to complete', 'plain starred']);
+        expect(after.tasks.first.isCompleted, isTrue);
+      },
+    );
   });
 
   group('the List a new Task goes into', () {
@@ -251,7 +279,10 @@ void main() {
       expect(opened.createListId, first);
 
       cubit.selectTab(ListTab(second));
-      final switched = await until(cubit, (s) => s.activeTab == ListTab(second));
+      final switched = await until(
+        cubit,
+        (s) => s.activeTab == ListTab(second),
+      );
 
       expect(switched.createListId, second);
     });
@@ -265,7 +296,10 @@ void main() {
       await until(cubit, (s) => s.activeTab == ListTab(second));
 
       cubit.selectTab(const StarredTab());
-      final onStar = await until(cubit, (s) => s.activeTab == const StarredTab());
+      final onStar = await until(
+        cubit,
+        (s) => s.activeTab == const StarredTab(),
+      );
 
       expect(onStar.createListId, second);
     });
@@ -277,7 +311,10 @@ void main() {
       await until(cubit, (s) => s.activeTab == ListTab(first));
 
       cubit.selectTab(const StarredTab());
-      final onStar = await until(cubit, (s) => s.activeTab == const StarredTab());
+      final onStar = await until(
+        cubit,
+        (s) => s.activeTab == const StarredTab(),
+      );
 
       expect(onStar.createListId, first);
     });

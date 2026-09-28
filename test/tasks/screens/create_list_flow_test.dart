@@ -29,11 +29,6 @@ void main() {
     final errandsX = tester.getTopLeft(find.text('Errands')).dx;
     final addListX = tester.getTopLeft(find.bySemanticsLabel('Add list')).dx;
     expect(errandsX, lessThan(addListX), reason: 'the new tab sits before +');
-
-    final lists = await tester.runAsync(() => h.isar.taskLists.where().findAll());
-    final created = lists!.singleWhere((l) => l.name == 'Errands');
-    expect(created.icon, isNotEmpty);
-    expect(created.color, isNot(0));
   });
 
   semanticsTest('the new List survives a restart', (tester) async {
@@ -44,57 +39,36 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await h.settle();
 
-    final lists = await tester.runAsync(() => h.isar.taskLists.where().findAll());
-    expect(lists!.map((l) => l.name), containsAll(['Personal Interest', 'Errands']));
+    final lists = await tester.runAsync(
+      () => h.isar.taskLists.where().findAll(),
+    );
+    expect(
+      lists!.map((l) => l.name),
+      containsAll(['Personal Interest', 'Errands']),
+    );
   });
 
-  semanticsTest('Done on an empty name keeps the sheet open and creates nothing',
-      (tester) async {
-    final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
+  semanticsTest(
+    'Done on an empty name keeps the sheet open and creates nothing',
+    (tester) async {
+      final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
 
-    await h.openAddListSheet();
-    await tester.showKeyboard(find.byType(TextField));
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await h.settle();
+      await h.openAddListSheet();
+      await tester.showKeyboard(find.byType(TextField));
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await h.settle();
 
-    expect(find.byType(CreateListForm), findsOneWidget);
-    final lists = await tester.runAsync(() => h.isar.taskLists.where().findAll());
-    expect(lists, hasLength(1), reason: 'only the List the harness seeded');
-  });
+      expect(find.byType(CreateListForm), findsOneWidget);
+      final lists = await tester.runAsync(
+        () => h.isar.taskLists.where().findAll(),
+      );
+      expect(lists, hasLength(1), reason: 'only the List the harness seeded');
+    },
+  );
 
-  semanticsTest('picking an icon and a color persists them', (tester) async {
-    final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
-
-    await h.openAddListSheet();
-    await tester.enterText(find.byType(TextField), 'Fitness');
-    await tester.tap(find.bySemanticsLabel('dumbbell icon'));
-    await tester.tap(find.bySemanticsLabel('Green color'));
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await h.settle();
-
-    final lists = await tester.runAsync(() => h.isar.taskLists.where().findAll());
-    final created = lists!.singleWhere((l) => l.name == 'Fitness');
-    expect(created.icon, 'dumbbell');
-    expect(created.color, 0xFF16A34A);
-  });
-
-  semanticsTest('a default icon and color are already selected on open',
-      (tester) async {
-    final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
-
-    await h.openAddListSheet();
-    await tester.enterText(find.byType(TextField), 'No picks made');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await h.settle();
-
-    final lists = await tester.runAsync(() => h.isar.taskLists.where().findAll());
-    final created = lists!.singleWhere((l) => l.name == 'No picks made');
-    expect(created.icon, isNotEmpty);
-    expect(created.color, isNot(0));
-  });
-
-  semanticsTest('a Task can be created in the new List right after making it',
-      (tester) async {
+  semanticsTest('a Task can be created in the new List right after making it', (
+    tester,
+  ) async {
     final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
 
     await h.openAddListSheet();
@@ -108,7 +82,9 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await h.settle();
 
-    final lists = await tester.runAsync(() => h.isar.taskLists.where().findAll());
+    final lists = await tester.runAsync(
+      () => h.isar.taskLists.where().findAll(),
+    );
     final errands = lists!.singleWhere((l) => l.name == 'Errands');
     final tasks = await h.saved();
     expect(tasks.single.listId, errands.id);
@@ -125,7 +101,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(CreateListForm), findsNothing);
-    final lists = await tester.runAsync(() => h.isar.taskLists.where().findAll());
+    final lists = await tester.runAsync(
+      () => h.isar.taskLists.where().findAll(),
+    );
     expect(lists, hasLength(1));
   });
 }

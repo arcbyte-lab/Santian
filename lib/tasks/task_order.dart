@@ -1,21 +1,17 @@
 import 'models/task.dart';
 
-/// The display order for a Tasks List: incomplete tasks first, then completed
-/// ones. Within each group, by `reminderAt` ascending with tasks that have no
-/// reminder last, ties broken by `id`.
+/// The display order for a Tasks List: by `reminderAt` ascending with tasks
+/// that have no reminder last, ties broken by `id`. Completion doesn't
+/// matter - a List tab splits completed Tasks into their own section itself.
 ///
-/// This is a recommendation in `isar-schema.md`, not a ruling, so it lives in
-/// one place. The recommended order among completed tasks is "most recently
-/// completed first", which needs a `completedAt` field that `Task` does not
-/// have; until the data model adds one, completed tasks use the same order.
+/// This departs from `isar-schema.md`'s recommendation (completed last), so
+/// it lives in one place.
 List<Task> sortTasksForDisplay(Iterable<Task> tasks) {
   final sorted = tasks.toList()..sort(_compare);
   return sorted;
 }
 
 int _compare(Task a, Task b) {
-  if (a.isCompleted != b.isCompleted) return a.isCompleted ? 1 : -1;
-
   final aAt = a.reminderAt;
   final bAt = b.reminderAt;
   if (aAt != null && bAt != null) {
@@ -27,4 +23,23 @@ int _compare(Task a, Task b) {
     return 1;
   }
   return a.id.compareTo(b.id);
+}
+
+/// Splits [tasks] into runs of consecutive Tasks sharing a [key], each
+/// paired with that key. Given [sortTasksForDisplay] order and a key derived
+/// from `reminderAt`, each run is one header's worth of Tasks.
+List<(K, List<Task>)> groupRuns<K>(
+  Iterable<Task> tasks,
+  K Function(Task) key,
+) {
+  final groups = <(K, List<Task>)>[];
+  for (final task in tasks) {
+    final k = key(task);
+    if (groups.isNotEmpty && groups.last.$1 == k) {
+      groups.last.$2.add(task);
+    } else {
+      groups.add((k, [task]));
+    }
+  }
+  return groups;
 }

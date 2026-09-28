@@ -4,6 +4,7 @@ import 'package:isar_community/isar.dart';
 import 'package:santian/core/theme/app_colors.dart';
 import 'package:santian/core/theme/app_theme.dart';
 import 'package:santian/tasks/models/task.dart';
+import 'package:santian/tasks/widgets/month_grid.dart';
 
 import '../../support/tasks_screen_harness.dart';
 
@@ -19,7 +20,9 @@ extension on TasksScreenHarness {
 }
 
 void main() {
-  testWidgets('tapping a row outside the checkbox opens Task Detail', (tester) async {
+  testWidgets('tapping a row outside the checkbox opens Task Detail', (
+    tester,
+  ) async {
     final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
     await h.addTask('alpha');
 
@@ -32,7 +35,9 @@ void main() {
     expect(find.text('Mark completed'), findsOneWidget);
   });
 
-  testWidgets('editing the title on blur persists and shows on the list row', (tester) async {
+  testWidgets('editing the title on blur persists and shows on the list row', (
+    tester,
+  ) async {
     final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
     await h.addTask('alpha');
 
@@ -74,7 +79,9 @@ void main() {
     expect((await h.saved()).single.isStarred, isTrue);
   });
 
-  testWidgets('Mark completed toggles completion and its own label', (tester) async {
+  testWidgets('Mark completed toggles completion and its own label', (
+    tester,
+  ) async {
     final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
     await h.addTask('alpha');
 
@@ -92,7 +99,9 @@ void main() {
     expect((await h.saved()).single.isCompleted, isFalse);
   });
 
-  testWidgets('setting a reminder shows a removable chip and persists it', (tester) async {
+  testWidgets('setting a reminder shows a removable chip and persists it', (
+    tester,
+  ) async {
     final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
     await h.addTask('alpha');
 
@@ -106,30 +115,46 @@ void main() {
     await h.settle();
 
     expect(find.text('Add reminder'), findsNothing);
-    expect((await h.saved()).single.reminderAt, isNotNull);
+    final at = (await h.saved()).single.reminderAt!;
+    final now = DateTime.now();
+    final isToday =
+        at.year == now.year && at.month == now.month && at.day == now.day;
+    expect(
+      find.textContaining(isToday ? 'Today · ' : '${formatShortDate(at, now)} · '),
+      findsOneWidget,
+    );
   });
 
-  semanticsTest('the X on the reminder chip clears reminderAt without reopening the picker', (tester) async {
-    final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
-    await h.addTask('alpha');
+  semanticsTest(
+    'the X on the reminder chip clears reminderAt without reopening the picker',
+    (tester) async {
+      final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
+      await h.addTask('alpha');
 
-    await h.openDetail('alpha');
-    await tester.tap(find.text('Add reminder'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Done'));
-    await tester.pumpAndSettle();
-    await h.settle();
-    expect((await h.saved()).single.reminderAt, isNotNull);
+      await h.openDetail('alpha');
+      await tester.tap(find.text('Add reminder'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      await h.settle();
+      expect((await h.saved()).single.reminderAt, isNotNull);
 
-    await tester.tap(find.bySemanticsLabel('Remove reminder'));
-    await h.settle();
+      await tester.tap(find.bySemanticsLabel('Remove reminder'));
+      await h.settle();
 
-    expect(find.text('Done'), findsNothing, reason: 'the picker did not reopen');
-    expect(find.text('Add reminder'), findsOneWidget);
-    expect((await h.saved()).single.reminderAt, isNull);
-  });
+      expect(
+        find.text('Done'),
+        findsNothing,
+        reason: 'the picker did not reopen',
+      );
+      expect(find.text('Add reminder'), findsOneWidget);
+      expect((await h.saved()).single.reminderAt, isNull);
+    },
+  );
 
-  testWidgets('setting a deadline shows a removable chip and persists it', (tester) async {
+  testWidgets('setting a deadline shows a removable chip and persists it', (
+    tester,
+  ) async {
     final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
     await h.addTask('alpha');
 
@@ -146,75 +171,100 @@ void main() {
     expect((await h.saved()).single.deadline, isNotNull);
   });
 
-  semanticsTest('the X on the deadline chip clears deadline without reopening the picker', (tester) async {
-    final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
-    await h.addTask('alpha');
+  semanticsTest(
+    'the X on the deadline chip clears deadline without reopening the picker',
+    (tester) async {
+      final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
+      await h.addTask('alpha');
 
-    await h.openDetail('alpha');
-    await tester.tap(find.text('Add deadline'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Done'));
-    await tester.pumpAndSettle();
-    await h.settle();
-    expect((await h.saved()).single.deadline, isNotNull);
+      await h.openDetail('alpha');
+      await tester.tap(find.text('Add deadline'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      await h.settle();
+      expect((await h.saved()).single.deadline, isNotNull);
 
-    await tester.tap(find.bySemanticsLabel('Remove deadline'));
-    await h.settle();
+      await tester.tap(find.bySemanticsLabel('Remove deadline'));
+      await h.settle();
 
-    expect(find.text('Done'), findsNothing, reason: 'the picker did not reopen');
-    expect(find.text('Add deadline'), findsOneWidget);
-    expect((await h.saved()).single.deadline, isNull);
-  });
+      expect(
+        find.text('Done'),
+        findsNothing,
+        reason: 'the picker did not reopen',
+      );
+      expect(find.text('Add deadline'), findsOneWidget);
+      expect((await h.saved()).single.deadline, isNull);
+    },
+  );
 
-  testWidgets('completing an overdue Task clears the deadline chip\'s red styling', (tester) async {
-    final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
-    await h.addTask('alpha');
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
-    await h.tester.runAsync(() async {
-      final task = (await h.isar.tasks.where().findAll()).single;
-      await h.isar.writeTxn(() => h.isar.tasks.put(task..deadline = yesterday));
-    });
-    await h.settle();
+  testWidgets(
+    'completing an overdue Task clears the deadline chip\'s red styling',
+    (tester) async {
+      final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
+      await h.addTask('alpha');
+      final yesterday = DateTime.now().subtract(const Duration(days: 1));
+      await h.tester.runAsync(() async {
+        final task = (await h.isar.tasks.where().findAll()).single;
+        await h.isar.writeTxn(
+          () => h.isar.tasks.put(task..deadline = yesterday),
+        );
+      });
+      await h.settle();
 
-    await h.openDetail('alpha');
-    // The Tasks List row behind the sheet shows the same deadline line, so
-    // more than one calendar icon is in the tree; both must agree either way.
-    final error = AppTheme.light.colorScheme.error;
-    for (final icon in tester.widgetList<Icon>(find.byIcon(Icons.calendar_today))) {
-      expect(icon.color, error);
-    }
+      await h.openDetail('alpha');
+      // The Tasks List row behind the sheet shows the same deadline line, so
+      // more than one calendar icon is in the tree; both must agree either way.
+      final error = AppTheme.light.colorScheme.error;
+      for (final icon in tester.widgetList<Icon>(
+        find.byIcon(Icons.calendar_today),
+      )) {
+        expect(icon.color, error);
+      }
 
-    await tester.tap(find.text('Mark completed'));
-    await h.settle();
+      await tester.tap(find.text('Mark completed'));
+      await h.settle();
 
-    final muted = AppTheme.light.extension<AppColors>()!.mutedForeground;
-    for (final icon in tester.widgetList<Icon>(find.byIcon(Icons.calendar_today))) {
-      expect(icon.color, muted);
-    }
-  });
+      final muted = AppTheme.light.extension<AppColors>()!.mutedForeground;
+      for (final icon in tester.widgetList<Icon>(
+        find.byIcon(Icons.calendar_today),
+      )) {
+        expect(icon.color, muted);
+      }
+    },
+  );
 
-  testWidgets('More, Delete removes the Task and closes the sheet with no confirm dialog', (tester) async {
-    final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
-    await h.addTask('alpha');
+  testWidgets(
+    'More, Delete removes the Task and closes the sheet with no confirm dialog',
+    (tester) async {
+      final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
+      await h.addTask('alpha');
 
-    await h.openDetail('alpha');
-    await tester.tap(find.byIcon(Icons.more_vert));
-    await h.settle();
-    await tester.tap(find.text('Delete'));
-    await h.settle();
+      await h.openDetail('alpha');
+      await tester.tap(find.byTooltip('More'));
+      await h.settle();
+      await tester.tap(find.text('Delete'));
+      await h.settle();
 
-    expect(find.text('Mark completed'), findsNothing, reason: 'the sheet has closed');
-    expect(await h.saved(), isEmpty);
-    expect(find.text('Task deleted'), findsOneWidget);
-  });
+      expect(
+        find.text('Mark completed'),
+        findsNothing,
+        reason: 'the sheet has closed',
+      );
+      expect(await h.saved(), isEmpty);
+      expect(find.text('Task deleted'), findsOneWidget);
+    },
+  );
 
-  testWidgets('Undo on the delete toast restores the Task with the same id', (tester) async {
+  testWidgets('Undo on the delete toast restores the Task with the same id', (
+    tester,
+  ) async {
     final h = await TasksScreenHarness.start(tester, ['Personal Interest']);
     await h.addTask('alpha');
     final originalId = (await h.saved()).single.id;
 
     await h.openDetail('alpha');
-    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.tap(find.byTooltip('More'));
     await h.settle();
     await tester.tap(find.text('Delete'));
     await h.settle();
@@ -237,7 +287,7 @@ void main() {
     await h.addTask('alpha');
 
     await h.openDetail('alpha');
-    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.tap(find.byTooltip('More'));
     await h.settle();
     await tester.tap(find.text('Delete'));
     await h.settle();

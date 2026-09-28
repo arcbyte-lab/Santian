@@ -19,7 +19,9 @@ Future<int?> showCreateListSheet(BuildContext context) {
     barrierColor: const Color(0x40000000),
     clipBehavior: Clip.antiAlias,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(AppRadius.sheet),
+      ),
     ),
     builder: (_) => BlocProvider(
       create: (_) => CreateListCubit(lists: lists),
@@ -40,26 +42,18 @@ class CreateListSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<CreateListCubit, CreateListState>(
-      builder: (context, state) {
-        final cubit = context.read<CreateListCubit>();
-        return Padding(
-          // Lift the sheet above the keyboard.
-          padding: EdgeInsets.fromLTRB(
-            28,
-            16,
-            28,
-            28 + MediaQuery.viewInsetsOf(context).bottom,
-          ),
-          child: CreateListForm(
-            state: state,
-            onNameChanged: cubit.setName,
-            onIconChanged: cubit.setIcon,
-            onColorChanged: cubit.setColor,
-            onSubmit: () => _submit(context),
-          ),
-        );
-      },
+    return Padding(
+      // Lift the sheet above the keyboard.
+      padding: EdgeInsets.fromLTRB(
+        28,
+        16,
+        28,
+        28 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: CreateListForm(
+        onNameChanged: context.read<CreateListCubit>().setName,
+        onSubmit: () => _submit(context),
+      ),
     );
   }
 }

@@ -20,21 +20,14 @@ TaskList? _listById(List<TaskList> lists, int listId) {
   return null;
 }
 
-const List<String> _weekdayNames = [
-  'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun',
-];
-
+/// "Today · 9:00 AM" on today's date, else "Wed 30 Sept · 9:00 AM".
 String _formatReminderChip(BuildContext context, DateTime dt) {
-  final weekday = _weekdayNames[dt.weekday - 1];
-  final month = monthNames[dt.month - 1].substring(0, 3);
-  final time = TimeOfDay.fromDateTime(dt).format(context);
-  return '$weekday, $month ${dt.day} · $time';
+  final now = DateTime.now();
+  final today =
+      dt.year == now.year && dt.month == now.month && dt.day == now.day;
+  final date = today ? 'Today' : formatShortDate(dt, now);
+  return '$date · ${TimeOfDay.fromDateTime(dt).format(context)}';
 }
-
-/// "Sep 20" — no year (a deadline this far out is rare enough not to need
-/// one), no time (`deadline` is date-only).
-String _formatDeadlineChip(DateTime dt) =>
-    '${monthNames[dt.month - 1].substring(0, 3)} ${dt.day}';
 
 /// Task Detail's content as a function of [state]: Top Bar (Back, Star,
 /// More), List Selector, Title, Description, the Deadline and Reminder
@@ -95,8 +88,9 @@ class TaskDetailView extends StatefulWidget {
 
 class _TaskDetailViewState extends State<TaskDetailView> {
   late final _title = TextEditingController(text: widget.state.task.title);
-  late final _description =
-      TextEditingController(text: widget.state.task.description ?? '');
+  late final _description = TextEditingController(
+    text: widget.state.task.description ?? '',
+  );
   final _titleFocus = FocusNode();
   final _descriptionFocus = FocusNode();
 
@@ -143,7 +137,8 @@ class _TaskDetailViewState extends State<TaskDetailView> {
       initial: widget.state.task.reminderAt,
       initialRepeat: widget.state.task.repeat,
     );
-    if (picked != null) widget.onReminderChanged(picked.dateTime, repeat: picked.repeat);
+    if (picked != null)
+      widget.onReminderChanged(picked.dateTime, repeat: picked.repeat);
   }
 
   Future<void> _pickDeadline(BuildContext context) async {
@@ -223,15 +218,6 @@ class _TaskDetailViewState extends State<TaskDetailView> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: list == null ? muted : Color(list.color),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
                   Text(
                     list?.name ?? '',
                     style: theme.textTheme.bodyMedium!.copyWith(
@@ -241,7 +227,11 @@ class _TaskDetailViewState extends State<TaskDetailView> {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Icon(Icons.keyboard_arrow_down, size: 14, color: scheme.primary),
+                  Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 14,
+                    color: scheme.primary,
+                  ),
                 ],
               ),
             ),
@@ -276,12 +266,16 @@ class _TaskDetailViewState extends State<TaskDetailView> {
                   focusNode: _descriptionFocus,
                   maxLines: null,
                   textCapitalization: TextCapitalization.sentences,
-                  style: theme.textTheme.bodyMedium!
-                      .copyWith(fontSize: 15, color: scheme.onSurface),
+                  style: theme.textTheme.bodyMedium!.copyWith(
+                    fontSize: 15,
+                    color: scheme.onSurface,
+                  ),
                   decoration: InputDecoration.collapsed(
                     hintText: 'Add description',
-                    hintStyle: theme.textTheme.bodyMedium!
-                        .copyWith(fontSize: 15, color: muted),
+                    hintStyle: theme.textTheme.bodyMedium!.copyWith(
+                      fontSize: 15,
+                      color: muted,
+                    ),
                   ),
                 ),
               ),
@@ -292,7 +286,10 @@ class _TaskDetailViewState extends State<TaskDetailView> {
           padding: const EdgeInsets.fromLTRB(28, 0, 28, 14),
           child: _DeadlineField(
             deadline: task.deadline,
-            overdue: isOverdue(deadline: task.deadline, isCompleted: task.isCompleted),
+            overdue: isOverdue(
+              deadline: task.deadline,
+              isCompleted: task.isCompleted,
+            ),
             onTap: () => _pickDeadline(context),
             onClear: () => widget.onDeadlineChanged(null),
           ),
@@ -394,7 +391,10 @@ class _ReminderField extends StatelessWidget {
             const SizedBox(width: 16),
             Text(
               'Add reminder',
-              style: theme.textTheme.bodyMedium!.copyWith(fontSize: 15, color: muted),
+              style: theme.textTheme.bodyMedium!.copyWith(
+                fontSize: 15,
+                color: muted,
+              ),
             ),
           ],
         ),
@@ -422,7 +422,10 @@ class _ReminderField extends StatelessWidget {
                   borderRadius: radius,
                   onTap: onTap,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     child: Text(
                       _formatReminderChip(context, reminderAt),
                       style: theme.textTheme.bodySmall!.copyWith(
@@ -492,7 +495,10 @@ class _DeadlineField extends StatelessWidget {
             const SizedBox(width: 16),
             Text(
               'Add deadline',
-              style: theme.textTheme.bodyMedium!.copyWith(fontSize: 15, color: muted),
+              style: theme.textTheme.bodyMedium!.copyWith(
+                fontSize: 15,
+                color: muted,
+              ),
             ),
           ],
         ),
@@ -505,7 +511,10 @@ class _DeadlineField extends StatelessWidget {
         Icon(Icons.calendar_today, size: 20, color: iconColor),
         const SizedBox(width: 16),
         DecoratedBox(
-          decoration: BoxDecoration(color: appColors.muted, borderRadius: radius),
+          decoration: BoxDecoration(
+            color: appColors.muted,
+            borderRadius: radius,
+          ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -517,9 +526,12 @@ class _DeadlineField extends StatelessWidget {
                   borderRadius: radius,
                   onTap: onTap,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     child: Text(
-                      _formatDeadlineChip(deadline),
+                      formatShortDate(deadline, DateTime.now()),
                       style: theme.textTheme.bodySmall!.copyWith(
                         fontSize: 13,
                         color: overdue ? scheme.error : scheme.onSurface,
@@ -684,12 +696,16 @@ class _SubtasksSectionState extends State<_SubtasksSection> {
                 textInputAction: TextInputAction.done,
                 textCapitalization: TextCapitalization.sentences,
                 onSubmitted: (_) => _submit(),
-                style: theme.textTheme.bodyMedium!
-                    .copyWith(fontSize: 15, color: theme.colorScheme.onSurface),
+                style: theme.textTheme.bodyMedium!.copyWith(
+                  fontSize: 15,
+                  color: theme.colorScheme.onSurface,
+                ),
                 decoration: InputDecoration.collapsed(
                   hintText: sorted.isEmpty ? 'Add subtasks' : 'Add subtask',
-                  hintStyle:
-                      theme.textTheme.bodyMedium!.copyWith(fontSize: 15, color: muted),
+                  hintStyle: theme.textTheme.bodyMedium!.copyWith(
+                    fontSize: 15,
+                    color: muted,
+                  ),
                 ),
               ),
             ),
@@ -774,8 +790,12 @@ class _SubtaskRowState extends State<_SubtaskRow> {
               textCapitalization: TextCapitalization.sentences,
               style: theme.textTheme.bodyMedium!.copyWith(
                 fontSize: 15,
-                color: subtask.isCompleted ? muted : theme.colorScheme.onSurface,
-                decoration: subtask.isCompleted ? TextDecoration.lineThrough : null,
+                color: subtask.isCompleted
+                    ? muted
+                    : theme.colorScheme.onSurface,
+                decoration: subtask.isCompleted
+                    ? TextDecoration.lineThrough
+                    : null,
               ),
               decoration: const InputDecoration.collapsed(hintText: ''),
             ),
@@ -834,9 +854,13 @@ class _SubtaskCheck extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: completed ? scheme.primary : null,
-              border: completed ? null : Border.all(color: scheme.outline, width: 1.2),
+              border: completed
+                  ? null
+                  : Border.all(color: scheme.outline, width: 1.2),
             ),
-            child: completed ? Icon(Icons.check, size: 11, color: scheme.onPrimary) : null,
+            child: completed
+                ? Icon(Icons.check, size: 11, color: scheme.onPrimary)
+                : null,
           ),
         ),
       ),

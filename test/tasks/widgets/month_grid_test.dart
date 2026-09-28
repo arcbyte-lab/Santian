@@ -3,20 +3,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:santian/core/theme/app_theme.dart';
 import 'package:santian/tasks/widgets/month_grid.dart';
 
-Future<DateTime?> _pump(
-  WidgetTester tester, {
-  DateTime? selectedDate,
-}) async {
+Future<DateTime?> _pump(WidgetTester tester, {DateTime? selectedDate}) async {
   DateTime? picked;
-  await tester.pumpWidget(MaterialApp(
-    theme: AppTheme.light,
-    home: Scaffold(
-      body: MonthGrid(
-        selectedDate: selectedDate,
-        onDateSelected: (d) => picked = d,
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: AppTheme.light,
+      home: Scaffold(
+        body: MonthGrid(
+          selectedDate: selectedDate,
+          onDateSelected: (d) => picked = d,
+        ),
       ),
     ),
-  ));
+  );
   return picked;
 }
 
@@ -27,15 +26,30 @@ void main() {
     expect(find.text('September 2026'), findsOneWidget);
   });
 
-  testWidgets('with no selected date, opens on the current month', (tester) async {
+  testWidgets('with no selected date, opens on the current month', (
+    tester,
+  ) async {
     await _pump(tester);
 
     final now = DateTime.now();
     final monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
-    expect(find.text('${monthNames[now.month - 1]} ${now.year}'), findsOneWidget);
+    expect(
+      find.text('${monthNames[now.month - 1]} ${now.year}'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('the chevrons navigate months', (tester) async {
@@ -51,39 +65,63 @@ void main() {
     expect(find.text('August 2026'), findsOneWidget);
   });
 
-  testWidgets('tapping a day reports that date in the visible month', (tester) async {
+  testWidgets('tapping a day reports that date in the visible month', (
+    tester,
+  ) async {
     late DateTime picked;
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.light,
-      home: Scaffold(
-        body: MonthGrid(
-          selectedDate: DateTime(2026, 9, 21),
-          onDateSelected: (d) => picked = d,
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: MonthGrid(
+            selectedDate: DateTime(2026, 9, 21),
+            onDateSelected: (d) => picked = d,
+          ),
         ),
       ),
-    ));
+    );
 
     await tester.tap(find.text('15'));
 
     expect(picked, DateTime(2026, 9, 15));
   });
 
-  testWidgets('navigating months keeps reporting dates in the newly visible month', (tester) async {
-    late DateTime picked;
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.light,
-      home: Scaffold(
-        body: MonthGrid(
-          selectedDate: DateTime(2026, 9, 21),
-          onDateSelected: (d) => picked = d,
+  testWidgets(
+    'navigating months keeps reporting dates in the newly visible month',
+    (tester) async {
+      late DateTime picked;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: MonthGrid(
+              selectedDate: DateTime(2026, 9, 21),
+              onDateSelected: (d) => picked = d,
+            ),
+          ),
         ),
-      ),
-    ));
+      );
 
-    await tester.tap(find.byIcon(Icons.chevron_right));
-    await tester.pump();
-    await tester.tap(find.text('15'));
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pump();
+      await tester.tap(find.text('15'));
 
-    expect(picked, DateTime(2026, 10, 15));
+      expect(picked, DateTime(2026, 10, 15));
+    },
+  );
+
+  test('relativeDayLabel', () {
+    final now = DateTime(2026, 9, 28, 15);
+    String label(int days) =>
+        relativeDayLabel(DateTime(2026, 9, 28 + days, 9), now);
+
+    expect(label(0), 'Today');
+    expect(label(-1), 'Yesterday');
+    expect(label(1), 'Tomorrow');
+    expect(label(-2), '2 days ago');
+    expect(label(3), 'in 3 days');
+    expect(label(-7), '1 week ago');
+    expect(label(-8), '1 week 1 day ago');
+    expect(label(16), 'in 2 weeks 2 days');
   });
 }

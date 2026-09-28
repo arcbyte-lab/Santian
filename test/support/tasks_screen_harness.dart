@@ -37,19 +37,17 @@ class TasksScreenHarness {
     await tester.runAsync(
       () => db.isar.writeTxn(() async {
         for (final name in lists) {
-          await db.isar.taskLists.put(
-            TaskList()
-              ..name = name
-              ..icon = 'rocket'
-              ..color = 1,
-          );
+          await db.isar.taskLists.put(TaskList()..name = name);
         }
       }),
     );
     await tester.pumpWidget(
       MultiRepositoryProvider(
         providers: [
-          RepositoryProvider(create: (_) => TaskRepository(db.isar, notifications: h.notifications)),
+          RepositoryProvider(
+            create: (_) =>
+                TaskRepository(db.isar, notifications: h.notifications),
+          ),
           RepositoryProvider(create: (_) => ListRepository(db.isar)),
         ],
         child: const SantianApp(home: TasksListScreen()),

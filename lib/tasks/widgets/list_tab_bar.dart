@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../cubits/tasks_list_state.dart';
 import '../models/task_list.dart';
-import 'list_icon.dart';
 
 /// The horizontally scrolling row of tabs above the Tasks List: Star first,
 /// then one tab per List. Exactly one tab is active.
@@ -153,7 +152,6 @@ class _ListTabBarState extends State<ListTabBar> {
                   _Tab(
                     measureKey: _keyFor(i + 1),
                     semanticLabel: list.name,
-                    icon: iconForList(list.icon),
                     label: list.name,
                     active: activeTab == ListTab(list.id),
                     highlight: highlight(i + 1),
@@ -195,7 +193,7 @@ const double _underlineHeight = 2;
 class _Tab extends StatelessWidget {
   const _Tab({
     required this.semanticLabel,
-    required this.icon,
+    this.icon,
     required this.active,
     required this.highlight,
     required this.onTap,
@@ -204,7 +202,9 @@ class _Tab extends StatelessWidget {
   });
 
   final String semanticLabel;
-  final IconData icon;
+
+  /// Star and `+` are icon-only; a List's tab is its name only.
+  final IconData? icon;
   final String? label;
 
   /// The settled active tab, for accessibility.
@@ -244,18 +244,18 @@ class _Tab extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 15, color: color),
-                if (label != null) ...[
-                  const SizedBox(width: 6),
+                if (icon != null) Icon(icon, size: 15, color: color),
+                if (label != null)
                   Text(
                     label!,
                     style: body.copyWith(
                       fontSize: 14,
-                      fontWeight: highlight > 0.5 ? FontWeight.w600 : FontWeight.w400,
+                      fontWeight: highlight > 0.5
+                          ? FontWeight.w600
+                          : FontWeight.w400,
                       color: color,
                     ),
                   ),
-                ],
               ],
             ),
           ),

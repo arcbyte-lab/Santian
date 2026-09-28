@@ -27,8 +27,13 @@ void main() {
     ..title = title
     ..isStarred = starred;
 
-  Future<List<String>> next(Stream<List<Task>> stream, bool Function(List<Task>) test) async {
-    final found = await stream.firstWhere(test).timeout(const Duration(seconds: 5));
+  Future<List<String>> next(
+    Stream<List<Task>> stream,
+    bool Function(List<Task>) test,
+  ) async {
+    final found = await stream
+        .firstWhere(test)
+        .timeout(const Duration(seconds: 5));
     return found.map((t) => t.title).toList()..sort();
   }
 
@@ -69,22 +74,31 @@ void main() {
         expect((await isar.tasks.get(id))!.isCompleted, isFalse);
       });
 
-      test('flips what is stored, so a second toggle undoes the first', () async {
-        final stale = task(1, 'a');
-        stale.id = await put(stale);
+      test(
+        'flips what is stored, so a second toggle undoes the first',
+        () async {
+          final stale = task(1, 'a');
+          stale.id = await put(stale);
 
-        await tasks.toggleCompleted(stale);
-        await tasks.toggleCompleted(stale);
+          await tasks.toggleCompleted(stale);
+          await tasks.toggleCompleted(stale);
 
-        expect((await isar.tasks.get(stale.id))!.isCompleted, isFalse);
-      });
+          expect((await isar.tasks.get(stale.id))!.isCompleted, isFalse);
+        },
+      );
 
       test('changes nothing but completion', () async {
-        final id = await put(task(1, 'a', starred: true)
-          ..description = 'notes'
-          ..reminderAt = DateTime(2026, 9, 21, 9)
-          ..deadline = DateTime(2026, 9, 22)
-          ..subtasks = [Subtask()..title = 'sub'..order = 0]);
+        final id = await put(
+          task(1, 'a', starred: true)
+            ..description = 'notes'
+            ..reminderAt = DateTime(2026, 9, 21, 9)
+            ..deadline = DateTime(2026, 9, 22)
+            ..subtasks = [
+              Subtask()
+                ..title = 'sub'
+                ..order = 0,
+            ],
+        );
 
         await tasks.toggleCompleted((await isar.tasks.get(id))!);
 
@@ -110,7 +124,9 @@ void main() {
       test('reaches a live watch of its List', () async {
         final id = await put(task(1, 'a'));
         final stream = tasks.watchByList(1).asBroadcastStream();
-        await stream.firstWhere((t) => t.length == 1).timeout(const Duration(seconds: 5));
+        await stream
+            .firstWhere((t) => t.length == 1)
+            .timeout(const Duration(seconds: 5));
 
         await tasks.toggleCompleted((await isar.tasks.get(id))!);
 
@@ -121,23 +137,30 @@ void main() {
       });
 
       group('a repeating Task', () {
-        test('advances reminderAt instead of completing, and stays unchecked', () async {
-          final id = await put(task(1, 'daily')
-            ..reminderAt = DateTime(2026, 9, 21, 9)
-            ..repeat = (Repeat()..frequency = RepeatFrequency.daily));
+        test(
+          'advances reminderAt instead of completing, and stays unchecked',
+          () async {
+            final id = await put(
+              task(1, 'daily')
+                ..reminderAt = DateTime(2026, 9, 21, 9)
+                ..repeat = (Repeat()..frequency = RepeatFrequency.daily),
+            );
 
-          await tasks.toggleCompleted((await isar.tasks.get(id))!);
+            await tasks.toggleCompleted((await isar.tasks.get(id))!);
 
-          final saved = (await isar.tasks.get(id))!;
-          expect(saved.isCompleted, isFalse);
-          expect(saved.reminderAt, DateTime(2026, 9, 22, 9));
-        });
+            final saved = (await isar.tasks.get(id))!;
+            expect(saved.isCompleted, isFalse);
+            expect(saved.reminderAt, DateTime(2026, 9, 22, 9));
+          },
+        );
 
         test('advances deadline independently, when set', () async {
-          final id = await put(task(1, 'daily')
-            ..reminderAt = DateTime(2026, 9, 21, 9)
-            ..deadline = DateTime(2026, 9, 25)
-            ..repeat = (Repeat()..frequency = RepeatFrequency.daily));
+          final id = await put(
+            task(1, 'daily')
+              ..reminderAt = DateTime(2026, 9, 21, 9)
+              ..deadline = DateTime(2026, 9, 25)
+              ..repeat = (Repeat()..frequency = RepeatFrequency.daily),
+          );
 
           await tasks.toggleCompleted((await isar.tasks.get(id))!);
 
@@ -147,50 +170,76 @@ void main() {
         });
 
         test('with no deadline, leaves it null', () async {
-          final id = await put(task(1, 'daily')
-            ..reminderAt = DateTime(2026, 9, 21, 9)
-            ..repeat = (Repeat()..frequency = RepeatFrequency.daily));
+          final id = await put(
+            task(1, 'daily')
+              ..reminderAt = DateTime(2026, 9, 21, 9)
+              ..repeat = (Repeat()..frequency = RepeatFrequency.daily),
+          );
 
           await tasks.toggleCompleted((await isar.tasks.get(id))!);
 
           expect((await isar.tasks.get(id))!.deadline, isNull);
         });
 
-        test('no catch-up: completing three days late still advances by exactly one day', () async {
-          final id = await put(task(1, 'daily')
-            ..reminderAt = DateTime(2026, 9, 18, 9)
-            ..repeat = (Repeat()..frequency = RepeatFrequency.daily));
+        test(
+          'no catch-up: completing three days late still advances by exactly one day',
+          () async {
+            final id = await put(
+              task(1, 'daily')
+                ..reminderAt = DateTime(2026, 9, 18, 9)
+                ..repeat = (Repeat()..frequency = RepeatFrequency.daily),
+            );
 
-          await tasks.toggleCompleted((await isar.tasks.get(id))!);
+            await tasks.toggleCompleted((await isar.tasks.get(id))!);
 
-          expect((await isar.tasks.get(id))!.reminderAt, DateTime(2026, 9, 19, 9));
-        });
+            expect(
+              (await isar.tasks.get(id))!.reminderAt,
+              DateTime(2026, 9, 19, 9),
+            );
+          },
+        );
 
-        test('completing repeatedly advances one occurrence each time', () async {
-          final id = await put(task(1, 'daily')
-            ..reminderAt = DateTime(2026, 9, 21, 9)
-            ..repeat = (Repeat()..frequency = RepeatFrequency.daily));
+        test(
+          'completing repeatedly advances one occurrence each time',
+          () async {
+            final id = await put(
+              task(1, 'daily')
+                ..reminderAt = DateTime(2026, 9, 21, 9)
+                ..repeat = (Repeat()..frequency = RepeatFrequency.daily),
+            );
 
-          await tasks.toggleCompleted((await isar.tasks.get(id))!);
-          await tasks.toggleCompleted((await isar.tasks.get(id))!);
-          await tasks.toggleCompleted((await isar.tasks.get(id))!);
+            await tasks.toggleCompleted((await isar.tasks.get(id))!);
+            await tasks.toggleCompleted((await isar.tasks.get(id))!);
+            await tasks.toggleCompleted((await isar.tasks.get(id))!);
 
-          expect((await isar.tasks.get(id))!.reminderAt, DateTime(2026, 9, 24, 9));
-        });
+            expect(
+              (await isar.tasks.get(id))!.reminderAt,
+              DateTime(2026, 9, 24, 9),
+            );
+          },
+        );
 
-        test('a weekly repeat with selected weekdays advances via nextOccurrence', () async {
-          // 2026-09-21 is a Monday; Mon+Thu selected, so completing Monday
-          // advances to Thursday of the same week.
-          final id = await put(task(1, 'weekly')
-            ..reminderAt = DateTime(2026, 9, 21, 9)
-            ..repeat = (Repeat()
-              ..frequency = RepeatFrequency.weekly
-              ..weekdays = [1, 4]));
+        test(
+          'a weekly repeat with selected weekdays advances via nextOccurrence',
+          () async {
+            // 2026-09-21 is a Monday; Mon+Thu selected, so completing Monday
+            // advances to Thursday of the same week.
+            final id = await put(
+              task(1, 'weekly')
+                ..reminderAt = DateTime(2026, 9, 21, 9)
+                ..repeat = (Repeat()
+                  ..frequency = RepeatFrequency.weekly
+                  ..weekdays = [1, 4]),
+            );
 
-          await tasks.toggleCompleted((await isar.tasks.get(id))!);
+            await tasks.toggleCompleted((await isar.tasks.get(id))!);
 
-          expect((await isar.tasks.get(id))!.reminderAt, DateTime(2026, 9, 24, 9));
-        });
+            expect(
+              (await isar.tasks.get(id))!.reminderAt,
+              DateTime(2026, 9, 24, 9),
+            );
+          },
+        );
       });
     });
 
@@ -203,60 +252,69 @@ void main() {
       expect(await next(stream, (t) => t.isNotEmpty), ['live']);
     });
 
-    test('watchByList emits only that List\'s tasks, and updates live', () async {
-      await put(task(1, 'a'));
-      await put(task(2, 'other list'));
-      final stream = tasks.watchByList(1).asBroadcastStream();
+    test(
+      'watchByList emits only that List\'s tasks, and updates live',
+      () async {
+        await put(task(1, 'a'));
+        await put(task(2, 'other list'));
+        final stream = tasks.watchByList(1).asBroadcastStream();
 
-      expect(await next(stream, (t) => t.isNotEmpty), ['a']);
+        expect(await next(stream, (t) => t.isNotEmpty), ['a']);
 
-      await put(task(1, 'b'));
-      expect(await next(stream, (t) => t.length == 2), ['a', 'b']);
-    });
+        await put(task(1, 'b'));
+        expect(await next(stream, (t) => t.length == 2), ['a', 'b']);
+      },
+    );
 
     test('watchStarred spans every List and ignores unstarred tasks', () async {
       await put(task(1, 'starred one', starred: true));
       await put(task(2, 'starred two', starred: true));
       await put(task(1, 'plain'));
 
-      expect(
-        await next(tasks.watchStarred(), (t) => t.length == 2),
-        ['starred one', 'starred two'],
-      );
+      expect(await next(tasks.watchStarred(), (t) => t.length == 2), [
+        'starred one',
+        'starred two',
+      ]);
     });
 
-    test('a watch started while a write is in flight still sees that write', () async {
-      // Isar's own query.watch() misses a write that is already running when
-      // it is registered (38 of 40 tries). watchQuery must not.
-      for (var i = 1; i <= 25; i++) {
-        final write = put(task(i, 'in flight $i'));
-        final stream = tasks.watchByList(i);
+    test(
+      'a watch started while a write is in flight still sees that write',
+      () async {
+        // Isar's own query.watch() misses a write that is already running when
+        // it is registered (38 of 40 tries). watchQuery must not.
+        for (var i = 1; i <= 25; i++) {
+          final write = put(task(i, 'in flight $i'));
+          final stream = tasks.watchByList(i);
 
-        expect(
-          await next(stream, (t) => t.isNotEmpty),
-          ['in flight $i'],
-          reason: 'iteration $i',
-        );
-        await write;
-      }
-    });
+          expect(await next(stream, (t) => t.isNotEmpty), [
+            'in flight $i',
+          ], reason: 'iteration $i');
+          await write;
+        }
+      },
+    );
 
     group('update', () {
-      test('persists every field of the given Task onto its stored record', () async {
-        final id = await put(task(1, 'a'));
+      test(
+        'persists every field of the given Task onto its stored record',
+        () async {
+          final id = await put(task(1, 'a'));
 
-        await tasks.update(task(2, 'b', starred: true)
-          ..id = id
-          ..description = 'notes'
-          ..isCompleted = true);
+          await tasks.update(
+            task(2, 'b', starred: true)
+              ..id = id
+              ..description = 'notes'
+              ..isCompleted = true,
+          );
 
-        final saved = (await isar.tasks.get(id))!;
-        expect(saved.listId, 2);
-        expect(saved.title, 'b');
-        expect(saved.isStarred, isTrue);
-        expect(saved.description, 'notes');
-        expect(saved.isCompleted, isTrue);
-      });
+          final saved = (await isar.tasks.get(id))!;
+          expect(saved.listId, 2);
+          expect(saved.title, 'b');
+          expect(saved.isStarred, isTrue);
+          expect(saved.description, 'notes');
+          expect(saved.isCompleted, isTrue);
+        },
+      );
 
       test('reaches a live watch of its List', () async {
         final id = await put(task(1, 'a'));
@@ -278,19 +336,22 @@ void main() {
         expect(await isar.tasks.get(id), isNull);
       });
 
-      test('a Task restored afterwards with update keeps the same id', () async {
-        final original = task(1, 'restore me');
-        original.id = await put(original);
+      test(
+        'a Task restored afterwards with update keeps the same id',
+        () async {
+          final original = task(1, 'restore me');
+          original.id = await put(original);
 
-        await tasks.delete(original.id);
-        expect(await isar.tasks.get(original.id), isNull);
+          await tasks.delete(original.id);
+          expect(await isar.tasks.get(original.id), isNull);
 
-        await tasks.update(original);
+          await tasks.update(original);
 
-        final restored = await isar.tasks.get(original.id);
-        expect(restored, isNotNull);
-        expect(restored!.title, 'restore me');
-      });
+          final restored = await isar.tasks.get(original.id);
+          expect(restored, isNotNull);
+          expect(restored!.title, 'restore me');
+        },
+      );
 
       test('a Task that no longer exists is ignored', () async {
         await tasks.delete(999);
@@ -311,29 +372,48 @@ void main() {
 
     group('notifications', () {
       test('create with a reminder schedules the reminder id', () async {
-        final id = await tasks.create(task(1, 'a')..reminderAt = DateTime(2026, 9, 21, 9));
+        final id = await tasks.create(
+          task(1, 'a')..reminderAt = DateTime(2026, 9, 21, 9),
+        );
 
-        final call = notifications.scheduled.singleWhere((c) => c.id == reminderNotificationId(id));
+        final call = notifications.scheduled.singleWhere(
+          (c) => c.id == reminderNotificationId(id),
+        );
         expect(call.at, DateTime(2026, 9, 21, 9));
         expect(call.title, 'a');
       });
 
-      test('create with a deadline schedules the deadline id at 9am with a "Due today" body', () async {
-        final id = await tasks.create(task(1, 'a')..deadline = DateTime(2026, 9, 22));
+      test(
+        'create with a deadline schedules the deadline id at 9am with a "Due today" body',
+        () async {
+          final id = await tasks.create(
+            task(1, 'a')..deadline = DateTime(2026, 9, 22),
+          );
 
-        final call = notifications.scheduled.singleWhere((c) => c.id == deadlineNotificationId(id));
-        expect(call.at, DateTime(2026, 9, 22, deadlineNotificationHour));
-        expect(call.body, 'Due today');
-      });
+          final call = notifications.scheduled.singleWhere(
+            (c) => c.id == deadlineNotificationId(id),
+          );
+          expect(call.at, DateTime(2026, 9, 22, deadlineNotificationHour));
+          expect(call.body, 'Due today');
+        },
+      );
 
-      test('create with neither cancels both ids, since none was ever scheduled', () async {
-        final id = await tasks.create(task(1, 'a'));
+      test(
+        'create with neither cancels both ids, since none was ever scheduled',
+        () async {
+          final id = await tasks.create(task(1, 'a'));
 
-        expect(notifications.cancelled, [reminderNotificationId(id), deadlineNotificationId(id)]);
-      });
+          expect(notifications.cancelled, [
+            reminderNotificationId(id),
+            deadlineNotificationId(id),
+          ]);
+        },
+      );
 
       test('update clears a removed reminder by cancelling its id', () async {
-        final id = await tasks.create(task(1, 'a')..reminderAt = DateTime(2026, 9, 21, 9));
+        final id = await tasks.create(
+          task(1, 'a')..reminderAt = DateTime(2026, 9, 21, 9),
+        );
         notifications.cancelled.clear();
 
         await tasks.update(task(1, 'a')..id = id);
@@ -342,18 +422,24 @@ void main() {
       });
 
       test('delete cancels both ids', () async {
-        final id = await tasks.create(task(1, 'a')
-          ..reminderAt = DateTime(2026, 9, 21, 9)
-          ..deadline = DateTime(2026, 9, 22));
+        final id = await tasks.create(
+          task(1, 'a')
+            ..reminderAt = DateTime(2026, 9, 21, 9)
+            ..deadline = DateTime(2026, 9, 22),
+        );
         notifications.cancelled.clear();
 
         await tasks.delete(id);
 
-        expect(notifications.cancelled, [reminderNotificationId(id), deadlineNotificationId(id)]);
+        expect(notifications.cancelled, [
+          reminderNotificationId(id),
+          deadlineNotificationId(id),
+        ]);
       });
 
       test('undoing a delete via update reschedules the same ids', () async {
-        final original = task(1, 'restore me')..reminderAt = DateTime(2026, 9, 21, 9);
+        final original = task(1, 'restore me')
+          ..reminderAt = DateTime(2026, 9, 21, 9);
         original.id = await tasks.create(original);
         await tasks.delete(original.id);
         notifications.scheduled.clear();
@@ -367,30 +453,44 @@ void main() {
       });
 
       test('completing a non-repeating Task cancels both ids', () async {
-        final id = await tasks.create(task(1, 'a')
-          ..reminderAt = DateTime(2026, 9, 21, 9)
-          ..deadline = DateTime(2026, 9, 22));
+        final id = await tasks.create(
+          task(1, 'a')
+            ..reminderAt = DateTime(2026, 9, 21, 9)
+            ..deadline = DateTime(2026, 9, 22),
+        );
         notifications.cancelled.clear();
 
         await tasks.toggleCompleted((await isar.tasks.get(id))!);
 
-        expect(notifications.cancelled, [reminderNotificationId(id), deadlineNotificationId(id)]);
+        expect(notifications.cancelled, [
+          reminderNotificationId(id),
+          deadlineNotificationId(id),
+        ]);
       });
 
-      test('completing a repeating Task reschedules both ids to the next occurrence', () async {
-        final id = await tasks.create(task(1, 'daily')
-          ..reminderAt = DateTime(2026, 9, 21, 9)
-          ..deadline = DateTime(2026, 9, 21)
-          ..repeat = (Repeat()..frequency = RepeatFrequency.daily));
-        notifications.scheduled.clear();
+      test(
+        'completing a repeating Task reschedules both ids to the next occurrence',
+        () async {
+          final id = await tasks.create(
+            task(1, 'daily')
+              ..reminderAt = DateTime(2026, 9, 21, 9)
+              ..deadline = DateTime(2026, 9, 21)
+              ..repeat = (Repeat()..frequency = RepeatFrequency.daily),
+          );
+          notifications.scheduled.clear();
 
-        await tasks.toggleCompleted((await isar.tasks.get(id))!);
+          await tasks.toggleCompleted((await isar.tasks.get(id))!);
 
-        final reminder = notifications.scheduled.singleWhere((c) => c.id == reminderNotificationId(id));
-        expect(reminder.at, DateTime(2026, 9, 22, 9));
-        final deadline = notifications.scheduled.singleWhere((c) => c.id == deadlineNotificationId(id));
-        expect(deadline.at, DateTime(2026, 9, 22, deadlineNotificationHour));
-      });
+          final reminder = notifications.scheduled.singleWhere(
+            (c) => c.id == reminderNotificationId(id),
+          );
+          expect(reminder.at, DateTime(2026, 9, 22, 9));
+          final deadline = notifications.scheduled.singleWhere(
+            (c) => c.id == deadlineNotificationId(id),
+          );
+          expect(deadline.at, DateTime(2026, 9, 22, deadlineNotificationHour));
+        },
+      );
     });
 
     test('a second watch still works after the first was cancelled', () async {
@@ -400,17 +500,17 @@ void main() {
 
       await put(task(1, 'after cancel'));
 
-      expect(await next(tasks.watchByList(1), (t) => t.isNotEmpty), ['after cancel']);
+      expect(await next(tasks.watchByList(1), (t) => t.isNotEmpty), [
+        'after cancel',
+      ]);
     });
   });
 
   group('ListRepository', () {
     test('watchAll emits Lists in creation order and updates live', () async {
       final stream = lists.watchAll().asBroadcastStream();
-      Future<int> add(String name) => isar.writeTxn(() => isar.taskLists.put(TaskList()
-        ..name = name
-        ..icon = 'rocket'
-        ..color = 1));
+      Future<int> add(String name) =>
+          isar.writeTxn(() => isar.taskLists.put(TaskList()..name = name));
 
       await add('first');
       await add('second');
@@ -427,26 +527,20 @@ void main() {
     });
 
     test('create saves the List and returns its id', () async {
-      final id = await lists.create(TaskList()
-        ..name = 'Errands'
-        ..icon = 'rocket'
-        ..color = 0xFF0284C7);
+      final id = await lists.create(TaskList()..name = 'Errands');
 
       expect(id, isNot(Isar.autoIncrement));
       final saved = (await isar.taskLists.get(id))!;
       expect(saved.name, 'Errands');
-      expect(saved.icon, 'rocket');
-      expect(saved.color, 0xFF0284C7);
     });
 
     test('create reaches a live watch of every List', () async {
       final stream = lists.watchAll().asBroadcastStream();
-      await stream.firstWhere((l) => l.isEmpty).timeout(const Duration(seconds: 5));
+      await stream
+          .firstWhere((l) => l.isEmpty)
+          .timeout(const Duration(seconds: 5));
 
-      await lists.create(TaskList()
-        ..name = 'live'
-        ..icon = 'rocket'
-        ..color = 1);
+      await lists.create(TaskList()..name = 'live');
 
       final after = await stream
           .firstWhere((l) => l.isNotEmpty)

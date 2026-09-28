@@ -47,7 +47,7 @@ void main() {
     expect(_ids(sorted), [1, 3, 2, 5]);
   });
 
-  test('completed tasks come after every incomplete one', () {
+  test('completion does not affect the order', () {
     final sorted = sortTasksForDisplay([
       _task(1, at: morning, done: true),
       _task(2, at: evening),
@@ -55,7 +55,7 @@ void main() {
       _task(4),
     ]);
 
-    expect(_ids(sorted), [2, 4, 1, 3]);
+    expect(_ids(sorted), [1, 2, 3, 4]);
   });
 
   test('completed tasks use the same order among themselves', () {
@@ -78,5 +78,24 @@ void main() {
 
   test('an empty list stays empty', () {
     expect(sortTasksForDisplay(const []), isEmpty);
+  });
+
+  test('groupRuns splits consecutive tasks by key', () {
+    final groups = groupRuns(
+      sortTasksForDisplay([
+        _task(1),
+        _task(2, at: evening),
+        _task(3, at: DateTime(2026, 9, 22, 8)),
+        _task(4, at: morning),
+      ]),
+      (t) => t.reminderAt?.day,
+    );
+
+    expect(groups.map((g) => g.$1), [21, 22, null]);
+    expect(groups.map((g) => _ids(g.$2)), [
+      [4, 2],
+      [3],
+      [1],
+    ]);
   });
 }

@@ -3,9 +3,64 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 
 const List<String> monthNames = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
+
+/// Indexed by `DateTime.weekday - 1` (Monday first).
+const List<String> weekdayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+/// Calendar days from [now]'s date to [day]'s: -1 is yesterday. Counted on
+/// dates, not 24h spans, so a DST change can't shift it.
+int calendarDaysFrom(DateTime now, DateTime day) =>
+    DateTime.utc(day.year, day.month, day.day)
+        .difference(DateTime.utc(now.year, now.month, now.day))
+        .inDays;
+
+/// [day] relative to [now]: "Today", "Yesterday", "Tomorrow", else "2 days
+/// ago" / "in 2 days", in weeks and days past a week ("1 week 1 day ago").
+// ponytail: weeks are the largest unit, so a date a year out reads "52
+// weeks 1 day ago"; add months/years if far-off dates turn up.
+String relativeDayLabel(DateTime day, DateTime now) {
+  final diff = calendarDaysFrom(now, day);
+  switch (diff) {
+    case 0:
+      return 'Today';
+    case -1:
+      return 'Yesterday';
+    case 1:
+      return 'Tomorrow';
+  }
+  String plural(int n, String unit) => '$n $unit${n == 1 ? '' : 's'}';
+  final days = diff.abs();
+  final span = [
+    if (days >= 7) plural(days ~/ 7, 'week'),
+    if (days % 7 != 0) plural(days % 7, 'day'),
+  ].join(' ');
+  return diff < 0 ? '$span ago' : 'in $span';
+}
+
+/// The app's short date: "Wed 30 Sept", or "Fri, 1 Jan 2027" outside [now]'s
+/// year. Used by the Tasks List's day headers and deadline line, and by Task
+/// Detail's reminder and deadline chips.
+String formatShortDate(DateTime day, DateTime now) {
+  final weekday = weekdayNames[day.weekday - 1];
+  // "Sept", not "Sep" - the one month abbreviated to four letters.
+  final month = monthNames[day.month - 1].substring(0, day.month == 9 ? 4 : 3);
+  return day.year == now.year
+      ? '$weekday ${day.day} $month'
+      : '$weekday, ${day.day} $month ${day.year}';
+}
 
 const List<String> _weekdayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
@@ -56,7 +111,11 @@ class _MonthGridState extends State<MonthGrid> {
     final selected = widget.selectedDate;
 
     final firstOfMonth = DateTime(_visibleMonth.year, _visibleMonth.month);
-    final daysInMonth = DateTime(_visibleMonth.year, _visibleMonth.month + 1, 0).day;
+    final daysInMonth = DateTime(
+      _visibleMonth.year,
+      _visibleMonth.month + 1,
+      0,
+    ).day;
     // `DateTime.weekday` is 1 (Monday) .. 7 (Sunday); the grid is Monday-first.
     final leadingBlanks = firstOfMonth.weekday - 1;
     final rowCount = ((leadingBlanks + daysInMonth) / 7).ceil();
@@ -135,7 +194,9 @@ class _MonthGridState extends State<MonthGrid> {
             children: [
               for (var row = 0; row < rowCount; row++)
                 Row(
-                  children: [for (var col = 0; col < 7; col++) dayCell(row, col)],
+                  children: [
+                    for (var col = 0; col < 7; col++) dayCell(row, col),
+                  ],
                 ),
             ],
           ),
@@ -146,7 +207,11 @@ class _MonthGridState extends State<MonthGrid> {
 }
 
 class _DayCell extends StatelessWidget {
-  const _DayCell({required this.day, required this.selected, required this.onTap});
+  const _DayCell({
+    required this.day,
+    required this.selected,
+    required this.onTap,
+  });
 
   final int day;
   final bool selected;
@@ -191,7 +256,11 @@ class _DayCell extends StatelessWidget {
 }
 
 class _NavButton extends StatelessWidget {
-  const _NavButton({required this.icon, required this.label, required this.onTap});
+  const _NavButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;

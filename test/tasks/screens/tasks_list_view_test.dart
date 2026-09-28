@@ -2,7 +2,6 @@ import 'dart:ui' show CheckedState;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:santian/core/theme/app_colors.dart';
 import 'package:santian/core/theme/app_theme.dart';
 import 'package:santian/tasks/cubits/tasks_list_state.dart';
@@ -15,11 +14,9 @@ import 'package:santian/tasks/widgets/task_row.dart';
 
 import '../../support/tasks_screen_harness.dart' show semanticsTest;
 
-TaskList _list(int id, String name, String icon) => TaskList()
+TaskList _list(int id, String name) => TaskList()
   ..id = id
-  ..name = name
-  ..icon = icon
-  ..color = 0xFF0284C7;
+  ..name = name;
 
 Task _task(int id, String title, {DateTime? at, bool done = false}) => Task()
   ..id = id
@@ -29,9 +26,9 @@ Task _task(int id, String title, {DateTime? at, bool done = false}) => Task()
   ..isCompleted = done;
 
 final _lists = [
-  _list(1, 'Personal Interest', 'rocket'),
-  _list(2, 'My Tasks', 'footprints'),
-  _list(3, 'Building', 'hammer'),
+  _list(1, 'Personal Interest'),
+  _list(2, 'My Tasks'),
+  _list(3, 'Building'),
 ];
 
 Future<void> _pump(
@@ -65,7 +62,14 @@ TextStyle _styleOf(WidgetTester tester, String text) =>
 void main() {
   group('tab bar', () {
     testWidgets('shows Star first, then every List', (tester) async {
-      await _pump(tester, TasksListState(lists: _lists, activeTab: const ListTab(2), isLoading: false));
+      await _pump(
+        tester,
+        TasksListState(
+          lists: _lists,
+          activeTab: const ListTab(2),
+          isLoading: false,
+        ),
+      );
 
       expect(find.byIcon(Icons.star_border), findsOneWidget);
       for (final name in ['Personal Interest', 'My Tasks', 'Building']) {
@@ -78,25 +82,42 @@ void main() {
       expect(first, lessThan(second));
     });
 
-    testWidgets('the active List is bold and primary-tinted, the rest are not', (tester) async {
-      await _pump(tester, TasksListState(lists: _lists, activeTab: const ListTab(2), isLoading: false));
-      final scheme = AppTheme.light.colorScheme;
-      final muted = AppTheme.light.extension<AppColors>()!.mutedForeground;
+    testWidgets(
+      'the active List is bold and primary-tinted, the rest are not',
+      (tester) async {
+        await _pump(
+          tester,
+          TasksListState(
+            lists: _lists,
+            activeTab: const ListTab(2),
+            isLoading: false,
+          ),
+        );
+        final scheme = AppTheme.light.colorScheme;
+        final muted = AppTheme.light.extension<AppColors>()!.mutedForeground;
 
-      expect(_styleOf(tester, 'My Tasks').fontWeight, FontWeight.w600);
-      expect(_styleOf(tester, 'My Tasks').color, scheme.primary);
-      expect(_styleOf(tester, 'Building').fontWeight, FontWeight.w400);
-      expect(_styleOf(tester, 'Building').color, muted);
-
-      expect(tester.widget<Icon>(find.byIcon(LucideIcons.footprints)).color, scheme.primary);
-      expect(tester.widget<Icon>(find.byIcon(LucideIcons.hammer)).color, muted);
-    });
+        expect(_styleOf(tester, 'My Tasks').fontWeight, FontWeight.w600);
+        expect(_styleOf(tester, 'My Tasks').color, scheme.primary);
+        expect(_styleOf(tester, 'Building').fontWeight, FontWeight.w400);
+        expect(_styleOf(tester, 'Building').color, muted);
+      },
+    );
 
     testWidgets('Star is the active tab when it is selected', (tester) async {
-      await _pump(tester, TasksListState(lists: _lists, activeTab: const StarredTab(), isLoading: false));
+      await _pump(
+        tester,
+        TasksListState(
+          lists: _lists,
+          activeTab: const StarredTab(),
+          isLoading: false,
+        ),
+      );
       final scheme = AppTheme.light.colorScheme;
 
-      expect(tester.widget<Icon>(find.byIcon(Icons.star_border)).color, scheme.primary);
+      expect(
+        tester.widget<Icon>(find.byIcon(Icons.star_border)).color,
+        scheme.primary,
+      );
       expect(_styleOf(tester, 'My Tasks').fontWeight, FontWeight.w400);
     });
 
@@ -104,7 +125,11 @@ void main() {
       final selected = <TasksTab>[];
       await _pump(
         tester,
-        TasksListState(lists: _lists, activeTab: const ListTab(1), isLoading: false),
+        TasksListState(
+          lists: _lists,
+          activeTab: const ListTab(1),
+          isLoading: false,
+        ),
         onTabSelected: selected.add,
       );
 
@@ -112,86 +137,131 @@ void main() {
       await tester.tap(find.byIcon(Icons.star_border));
       await tester.tap(find.text('My Tasks'));
 
-      expect(selected, [const ListTab(3), const StarredTab(), const ListTab(2)]);
+      expect(selected, [
+        const ListTab(3),
+        const StarredTab(),
+        const ListTab(2),
+      ]);
     });
 
-    testWidgets('swiping the list moves to the next or previous tab, stopping at the ends', (tester) async {
-      Future<List<TasksTab>> swipe(TasksTab from, double dx) async {
-        final selected = <TasksTab>[];
+    testWidgets(
+      'swiping the list moves to the next or previous tab, stopping at the ends',
+      (tester) async {
+        Future<List<TasksTab>> swipe(TasksTab from, double dx) async {
+          final selected = <TasksTab>[];
+          await _pump(
+            tester,
+            TasksListState(lists: _lists, activeTab: from, isLoading: false),
+            onTabSelected: selected.add,
+          );
+          await tester.pumpAndSettle(); // let the pages reach `from` first
+          await tester.fling(find.byType(PageView), Offset(dx, 0), 1000);
+          await tester.pumpAndSettle();
+          return selected;
+        }
+
+        expect(await swipe(const ListTab(2), -300), [const ListTab(3)]);
+        expect(await swipe(const ListTab(2), 300), [const ListTab(1)]);
+        expect(await swipe(const ListTab(1), 300), [const StarredTab()]);
+        expect(await swipe(const StarredTab(), 300), isEmpty);
+        expect(await swipe(const ListTab(3), -300), isEmpty);
+      },
+    );
+
+    testWidgets(
+      "dragging part-way shows the next tab's tasks beside the current ones",
+      (tester) async {
         await _pump(
           tester,
-          TasksListState(lists: _lists, activeTab: from, isLoading: false),
-          onTabSelected: selected.add,
+          TasksListState(
+            lists: _lists,
+            activeTab: const ListTab(1),
+            allTasks: [_task(1, 'in first'), _task(2, 'in second')..listId = 2],
+            isLoading: false,
+          ),
         );
-        await tester.pumpAndSettle(); // let the pages reach `from` first
-        await tester.fling(find.byType(PageView), Offset(dx, 0), 1000);
-        await tester.pumpAndSettle();
-        return selected;
-      }
 
-      expect(await swipe(const ListTab(2), -300), [const ListTab(3)]);
-      expect(await swipe(const ListTab(2), 300), [const ListTab(1)]);
-      expect(await swipe(const ListTab(1), 300), [const StarredTab()]);
-      expect(await swipe(const StarredTab(), 300), isEmpty);
-      expect(await swipe(const ListTab(3), -300), isEmpty);
-    });
+        final gesture = await tester.startGesture(
+          tester.getCenter(find.byType(PageView)),
+        );
+        await gesture.moveBy(
+          const Offset(-20, 0),
+        ); // past touch slop; the drag starts here
+        await gesture.moveBy(const Offset(-150, 0));
+        await tester.pump();
 
-    testWidgets("dragging part-way shows the next tab's tasks beside the current ones", (tester) async {
+        expect(find.text('in first'), findsOneWidget);
+        expect(find.text('in second'), findsOneWidget);
+        await gesture.up();
+      },
+    );
+
+    testWidgets(
+      'dragging part-way slides the underline and tint toward the next tab',
+      (tester) async {
+        await _pump(
+          tester,
+          TasksListState(
+            lists: _lists,
+            activeTab: const ListTab(1),
+            isLoading: false,
+          ),
+        );
+        await tester
+            .pumpAndSettle(); // the underline appears once the tabs are measured
+        final underline = find.descendant(
+          of: find.byType(ListTabBar),
+          matching: find.byType(ColoredBox),
+        );
+        double underlineLeft() => tester.getTopLeft(underline).dx;
+        final rocket = tester.getTopLeft(find.text('Personal Interest')).dx;
+        final footprints = tester.getTopLeft(find.text('My Tasks')).dx;
+        expect(underlineLeft(), rocket);
+
+        final gesture = await tester.startGesture(
+          tester.getCenter(find.byType(PageView)),
+        );
+        await gesture.moveBy(
+          const Offset(-20, 0),
+        ); // past touch slop; the drag starts here
+        await gesture.moveBy(const Offset(-150, 0));
+        await tester.pump();
+
+        expect(underlineLeft(), greaterThan(rocket));
+        expect(underlineLeft(), lessThan(footprints));
+        final scheme = AppTheme.light.colorScheme;
+        final muted = AppTheme.light.extension<AppColors>()!.mutedForeground;
+        final tint = _styleOf(tester, 'My Tasks').color;
+        expect(tint, isNot(muted));
+        expect(tint, isNot(scheme.primary));
+        await gesture.up();
+      },
+    );
+
+    semanticsTest('with no onAddList there is no + tab', (tester) async {
       await _pump(
         tester,
         TasksListState(
           lists: _lists,
           activeTab: const ListTab(1),
-          allTasks: [_task(1, 'in first'), _task(2, 'in second')..listId = 2],
           isLoading: false,
         ),
       );
 
-      final gesture = await tester.startGesture(tester.getCenter(find.byType(PageView)));
-      await gesture.moveBy(const Offset(-20, 0)); // past touch slop; the drag starts here
-      await gesture.moveBy(const Offset(-150, 0));
-      await tester.pump();
-
-      expect(find.text('in first'), findsOneWidget);
-      expect(find.text('in second'), findsOneWidget);
-      await gesture.up();
-    });
-
-    testWidgets('dragging part-way slides the underline and tint toward the next tab', (tester) async {
-      await _pump(tester, TasksListState(lists: _lists, activeTab: const ListTab(1), isLoading: false));
-      await tester.pumpAndSettle(); // the underline appears once the tabs are measured
-      final underline = find.descendant(of: find.byType(ListTabBar), matching: find.byType(ColoredBox));
-      double underlineLeft() => tester.getTopLeft(underline).dx;
-      final rocket = tester.getTopLeft(find.byIcon(LucideIcons.rocket)).dx;
-      final footprints = tester.getTopLeft(find.byIcon(LucideIcons.footprints)).dx;
-      expect(underlineLeft(), rocket);
-
-      final gesture = await tester.startGesture(tester.getCenter(find.byType(PageView)));
-      await gesture.moveBy(const Offset(-20, 0)); // past touch slop; the drag starts here
-      await gesture.moveBy(const Offset(-150, 0));
-      await tester.pump();
-
-      expect(underlineLeft(), greaterThan(rocket));
-      expect(underlineLeft(), lessThan(footprints));
-      final scheme = AppTheme.light.colorScheme;
-      final muted = AppTheme.light.extension<AppColors>()!.mutedForeground;
-      final tint = _styleOf(tester, 'My Tasks').color;
-      expect(tint, isNot(muted));
-      expect(tint, isNot(scheme.primary));
-      await gesture.up();
-    });
-
-    semanticsTest('with no onAddList there is no + tab', (tester) async {
-      await _pump(tester, TasksListState(lists: _lists, activeTab: const ListTab(1), isLoading: false));
-
       expect(find.bySemanticsLabel('Add list'), findsNothing);
     });
 
-    semanticsTest('the + tab is last, after every List, and reports a tap', (tester) async {
+    semanticsTest('the + tab is last, after every List, and reports a tap', (
+      tester,
+    ) async {
       var taps = 0;
       await _pump(
         tester,
-        TasksListState(lists: _lists, activeTab: const ListTab(1), isLoading: false),
+        TasksListState(
+          lists: _lists,
+          activeTab: const ListTab(1),
+          isLoading: false,
+        ),
         onAddList: () => taps++,
       );
 
@@ -205,17 +275,34 @@ void main() {
     });
 
     testWidgets('a long bar scrolls instead of overflowing', (tester) async {
-      final many = [for (var i = 1; i <= 12; i++) _list(i, 'List number $i', 'rocket')];
-      await _pump(tester, TasksListState(lists: many, activeTab: const ListTab(1), isLoading: false));
+      final many = [for (var i = 1; i <= 12; i++) _list(i, 'List number $i')];
+      await _pump(
+        tester,
+        TasksListState(
+          lists: many,
+          activeTab: const ListTab(1),
+          isLoading: false,
+        ),
+      );
 
       expect(tester.takeException(), isNull);
-      final screenWidth = tester.view.physicalSize.width / tester.view.devicePixelRatio;
-      expect(tester.getTopLeft(find.text('List number 12')).dx, greaterThan(screenWidth));
+      final screenWidth =
+          tester.view.physicalSize.width / tester.view.devicePixelRatio;
+      expect(
+        tester.getTopLeft(find.text('List number 12')).dx,
+        greaterThan(screenWidth),
+      );
 
-      await tester.drag(find.byType(SingleChildScrollView), const Offset(-4000, 0));
+      await tester.drag(
+        find.byType(SingleChildScrollView),
+        const Offset(-4000, 0),
+      );
       await tester.pump();
 
-      expect(tester.getTopLeft(find.text('List number 12')).dx, lessThan(screenWidth));
+      expect(
+        tester.getTopLeft(find.text('List number 12')).dx,
+        lessThan(screenWidth),
+      );
     });
   });
 
@@ -232,7 +319,7 @@ void main() {
       );
 
       expect(find.text('Morning workout'), findsOneWidget);
-      expect(find.text('7:00 AM'), findsOneWidget);
+      expect(find.textContaining(', 7:00 AM'), findsOneWidget);
     });
 
     testWidgets('a task with no reminder shows no time line', (tester) async {
@@ -251,7 +338,9 @@ void main() {
       expect(find.textContaining('PM'), findsNothing);
     });
 
-    testWidgets('rows appear in the order the state gives them', (tester) async {
+    testWidgets('rows appear in the order the state gives them', (
+      tester,
+    ) async {
       await _pump(
         tester,
         TasksListState(
@@ -262,13 +351,17 @@ void main() {
         ),
       );
 
-      final ys = ['first', 'second', 'third']
-          .map((t) => tester.getTopLeft(find.text(t)).dy)
-          .toList();
+      final ys = [
+        'first',
+        'second',
+        'third',
+      ].map((t) => tester.getTopLeft(find.text(t)).dy).toList();
       expect(ys, orderedEquals([...ys]..sort()));
     });
 
-    testWidgets('a completed task is dimmed with a filled, checked circle', (tester) async {
+    testWidgets('a completed task is dimmed with a filled, checked circle', (
+      tester,
+    ) async {
       await _pump(
         tester,
         TasksListState(
@@ -287,8 +380,144 @@ void main() {
     });
   });
 
+  group('day headers', () {
+    test('dayHeaderLabel formats', () {
+      final now = DateTime(2026, 9, 28, 15);
+      expect(dayHeaderLabel(null, now), 'No date');
+      expect(dayHeaderLabel(DateTime(2026, 9, 27, 23), now), 'Past');
+      expect(dayHeaderLabel(DateTime(2025, 1, 1), now), 'Past');
+      expect(dayHeaderLabel(DateTime(2026, 9, 28, 1), now), 'Today');
+      expect(dayHeaderLabel(DateTime(2026, 9, 28), now), 'Today');
+      expect(dayHeaderLabel(DateTime(2026, 9, 29), now), 'Tomorrow');
+      expect(dayHeaderLabel(DateTime(2026, 9, 30), now), 'Wed 30 Sept');
+      expect(dayHeaderLabel(DateTime(2026, 10, 5), now), 'Mon 5 Oct');
+      expect(dayHeaderLabel(DateTime(2027, 1, 1), now), 'Fri, 1 Jan 2027');
+      expect(dayHeaderLabel(DateTime(2027, 9, 30), now), 'Thu, 30 Sept 2027');
+    });
+
+    testWidgets('open tasks are grouped under their reminder day, then No date', (
+      tester,
+    ) async {
+      final now = DateTime.now();
+      DateTime day(int offset, int hour) =>
+          DateTime(now.year, now.month, now.day + offset, hour);
+      final later = day(5, 9);
+      tester.view.physicalSize = const Size(800, 2000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await _pump(
+        tester,
+        TasksListState(
+          lists: _lists,
+          activeTab: const ListTab(1),
+          isLoading: false,
+          allTasks: [
+            _task(1, 'undated'),
+            _task(2, 'later', at: later),
+            _task(3, 'tomorrow task', at: day(1, 9)),
+            _task(4, 'today task', at: day(0, 9)),
+            _task(5, 'late', at: day(-1, 9)),
+            _task(7, 'very late', at: day(-10, 9)),
+            _task(6, 'done today', at: day(0, 8), done: true),
+          ],
+        ),
+      );
+      double y(String text) => tester.getTopLeft(find.text(text)).dy;
+      final order = [
+        'Past', 'very late', 'late',
+        'Today', 'today task',
+        'Tomorrow', 'tomorrow task',
+        dayHeaderLabel(later, now),
+        'later',
+        'No date', 'undated',
+        'Completed (1)', 'done today',
+      ];
+      for (var i = 1; i < order.length; i++) {
+        expect(y(order[i - 1]), lessThan(y(order[i])), reason: order[i]);
+      }
+      expect(find.text('Past'), findsOneWidget, reason: 'one group for every past day');
+      final scheme = AppTheme.light.colorScheme;
+      expect(_styleOf(tester, 'Past').color, scheme.error);
+      expect(_styleOf(tester, 'Today').color, isNot(scheme.error));
+      expect(find.text('Today'), findsOneWidget, reason: 'completed is not grouped');
+    });
+  });
+
+  group('Completed section', () {
+    TasksListState withDone(TasksTab tab) => TasksListState(
+      lists: _lists,
+      activeTab: tab,
+      isLoading: false,
+      allTasks: [
+        _task(1, 'open')..isStarred = true,
+        _task(2, 'finished', done: true)..isStarred = true,
+        _task(3, 'also done', done: true),
+      ],
+    );
+
+    testWidgets('a List groups its completed tasks under a count header', (
+      tester,
+    ) async {
+      await _pump(tester, withDone(const ListTab(1)));
+
+      expect(find.text('Completed (2)'), findsOneWidget);
+      final header = tester.getTopLeft(find.text('Completed (2)')).dy;
+      expect(tester.getTopLeft(find.text('open')).dy, lessThan(header));
+      expect(tester.getTopLeft(find.text('finished')).dy, greaterThan(header));
+    });
+
+    testWidgets('tapping the header collapses and re-expands it', (
+      tester,
+    ) async {
+      await _pump(tester, withDone(const ListTab(1)));
+
+      await tester.tap(find.text('Completed (2)'));
+      await tester.pumpAndSettle();
+      expect(find.text('finished'), findsNothing);
+      expect(find.text('open'), findsOneWidget);
+
+      await tester.tap(find.text('Completed (2)'));
+      await tester.pumpAndSettle();
+      expect(find.text('finished'), findsOneWidget);
+    });
+
+    testWidgets('Star has no header', (tester) async {
+      await _pump(tester, withDone(const StarredTab()));
+      expect(find.textContaining('Completed'), findsNothing);
+      expect(find.text('finished'), findsOneWidget);
+    });
+
+    testWidgets('a List shows the header at (0), even when empty', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        TasksListState(
+          lists: _lists,
+          activeTab: const ListTab(1),
+          isLoading: false,
+          allTasks: [_task(1, 'open')],
+        ),
+      );
+      expect(find.text('Completed (0)'), findsOneWidget);
+
+      await _pump(
+        tester,
+        TasksListState(
+          lists: _lists,
+          activeTab: const ListTab(1),
+          isLoading: false,
+        ),
+      );
+      expect(find.text('Completed (0)'), findsOneWidget);
+      expect(find.text('No tasks for today'), findsOneWidget);
+    });
+  });
+
   group('checkbox', () {
-    semanticsTest('tapping it calls onToggleTask with that task', (tester) async {
+    semanticsTest('tapping it calls onToggleTask with that task', (
+      tester,
+    ) async {
       final toggled = <int>[];
       await tester.pumpWidget(
         MaterialApp(
@@ -311,32 +540,37 @@ void main() {
       expect(toggled, [2]);
     });
 
-    semanticsTest('its tap target reaches the row edge and the row height, not just the circle', (tester) async {
-      final toggled = <int>[];
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: TasksListView(
-            state: TasksListState(
-              lists: _lists,
-              activeTab: const ListTab(1),
-              isLoading: false,
-              allTasks: [_task(1, 'one', at: DateTime(2026, 9, 21, 9))],
+    semanticsTest(
+      'its tap target reaches the row edge and the row height, not just the circle',
+      (tester) async {
+        final toggled = <int>[];
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: TasksListView(
+              state: TasksListState(
+                lists: _lists,
+                activeTab: const ListTab(1),
+                isLoading: false,
+                allTasks: [_task(1, 'one', at: DateTime(2026, 9, 21, 9))],
+              ),
+              onTabSelected: (_) {},
+              onToggleTask: (t) => toggled.add(t.id),
             ),
-            onTabSelected: (_) {},
-            onToggleTask: (t) => toggled.add(t.id),
           ),
-        ),
-      );
-      final row = tester.getRect(find.byType(TaskRow));
+        );
+        final row = tester.getRect(find.byType(TaskRow));
 
-      await tester.tapAt(row.topLeft + const Offset(4, 4));
-      await tester.tapAt(row.bottomLeft + const Offset(4, -4));
+        await tester.tapAt(row.topLeft + const Offset(4, 4));
+        await tester.tapAt(row.bottomLeft + const Offset(4, -4));
 
-      expect(toggled, [1, 1]);
-    });
+        expect(toggled, [1, 1]);
+      },
+    );
 
-    semanticsTest('tapping the title or the reminder time does not toggle', (tester) async {
+    semanticsTest('tapping the title or the reminder time does not toggle', (
+      tester,
+    ) async {
       final toggled = <int>[];
       await tester.pumpWidget(
         MaterialApp(
@@ -360,23 +594,26 @@ void main() {
       expect(toggled, isEmpty);
     });
 
-    semanticsTest('is one control per row, named by the task and carrying its checked state', (tester) async {
-      await _pump(
-        tester,
-        TasksListState(
-          lists: _lists,
-          activeTab: const ListTab(1),
-          isLoading: false,
-          allTasks: [_task(1, 'open'), _task(2, 'finished', done: true)],
-        ),
-      );
+    semanticsTest(
+      'is one control per row, named by the task and carrying its checked state',
+      (tester) async {
+        await _pump(
+          tester,
+          TasksListState(
+            lists: _lists,
+            activeTab: const ListTab(1),
+            isLoading: false,
+            allTasks: [_task(1, 'open'), _task(2, 'finished', done: true)],
+          ),
+        );
 
-      // One node per title: the checkbox, not the checkbox plus the text.
-      final open = tester.getSemantics(find.bySemanticsLabel('open'));
-      final finished = tester.getSemantics(find.bySemanticsLabel('finished'));
-      expect(open.flagsCollection.isChecked, CheckedState.isFalse);
-      expect(finished.flagsCollection.isChecked, CheckedState.isTrue);
-    });
+        // One node per title: the checkbox, not the checkbox plus the text.
+        final open = tester.getSemantics(find.bySemanticsLabel('open'));
+        final finished = tester.getSemantics(find.bySemanticsLabel('finished'));
+        expect(open.flagsCollection.isChecked, CheckedState.isFalse);
+        expect(finished.flagsCollection.isChecked, CheckedState.isTrue);
+      },
+    );
 
     semanticsTest('does nothing when there is no callback', (tester) async {
       await _pump(
@@ -396,17 +633,30 @@ void main() {
   });
 
   testWidgets('shows the create-task button', (tester) async {
-    await _pump(tester, TasksListState(lists: _lists, activeTab: const ListTab(1), isLoading: false));
+    await _pump(
+      tester,
+      TasksListState(
+        lists: _lists,
+        activeTab: const ListTab(1),
+        isLoading: false,
+      ),
+    );
 
     expect(find.bySemanticsLabel('Create task'), findsOneWidget);
     expect(find.byIcon(Icons.add), findsOneWidget);
   });
 
-  testWidgets('tapping the create-task button calls onCreateTask', (tester) async {
+  testWidgets('tapping the create-task button calls onCreateTask', (
+    tester,
+  ) async {
     var taps = 0;
     await _pump(
       tester,
-      TasksListState(lists: _lists, activeTab: const ListTab(1), isLoading: false),
+      TasksListState(
+        lists: _lists,
+        activeTab: const ListTab(1),
+        isLoading: false,
+      ),
       onCreateTask: () => taps++,
     );
 
@@ -422,7 +672,10 @@ void main() {
 
     expect(tester.takeException(), isNull);
     final inkWell = tester.widget<InkWell>(
-      find.descendant(of: find.byType(CreateTaskFab), matching: find.byType(InkWell)),
+      find.descendant(
+        of: find.byType(CreateTaskFab),
+        matching: find.byType(InkWell),
+      ),
     );
     expect(inkWell.onTap, isNull);
   });
@@ -456,24 +709,44 @@ void main() {
 
       expect(tester.takeException(), isNull);
       final theme = Theme.of(tester.element(find.byType(Scaffold)));
-      expect(theme.brightness, mode == ThemeMode.dark ? Brightness.dark : Brightness.light);
+      expect(
+        theme.brightness,
+        mode == ThemeMode.dark ? Brightness.dark : Brightness.light,
+      );
     });
   }
 
   group('empty state', () {
-    testWidgets('shows "No tasks for today" when the tab has no Tasks', (tester) async {
-      await _pump(tester, TasksListState(lists: _lists, activeTab: const ListTab(2), isLoading: false));
+    testWidgets('shows "No tasks for today" when the tab has no Tasks', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        TasksListState(
+          lists: _lists,
+          activeTab: const ListTab(2),
+          isLoading: false,
+        ),
+      );
 
       expect(find.text('No tasks for today'), findsOneWidget);
     });
 
     testWidgets('hidden while loading and when Tasks exist', (tester) async {
-      await _pump(tester, TasksListState(lists: _lists, activeTab: const ListTab(2)));
+      await _pump(
+        tester,
+        TasksListState(lists: _lists, activeTab: const ListTab(2)),
+      );
       expect(find.text('No tasks for today'), findsNothing);
 
       await _pump(
         tester,
-        TasksListState(lists: _lists, activeTab: const ListTab(1), allTasks: [_task(1, 'Buy milk')], isLoading: false),
+        TasksListState(
+          lists: _lists,
+          activeTab: const ListTab(1),
+          allTasks: [_task(1, 'Buy milk')],
+          isLoading: false,
+        ),
       );
       await tester.pumpAndSettle();
       expect(find.text('No tasks for today'), findsNothing);

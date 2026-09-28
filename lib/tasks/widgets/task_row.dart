@@ -5,18 +5,29 @@ import '../deadline_status.dart';
 import '../models/task.dart';
 import '../widgets/month_grid.dart';
 
-/// One Task on the Tasks List: a circular checkbox, the title, the reminder
-/// time when there is one, and a second muted line — calendar icon plus a
-/// short date — when there is a deadline. That line turns
-/// `colorScheme.error` when the deadline is overdue. The checkbox calls
-/// [onToggle]; tapping anywhere else on the row calls [onOpenDetail].
+/// One Task on the Tasks List: a circular checkbox, the title (wrapping onto
+/// as many lines as it needs), up to two lines of description, the reminder
+/// ("Yesterday, 9:00 AM") and the deadline ("Due in 2 days") side by side on
+/// one muted line when either is set (each turns `colorScheme.error` once its
+/// date is past), and a star on the right.
+/// The checkbox calls [onToggle], the star [onToggleStar]; tapping anywhere
+/// else on the row calls [onOpenDetail].
 class TaskRow extends StatelessWidget {
-  const TaskRow({super.key, required this.task, this.onToggle, this.onOpenDetail});
+  const TaskRow({
+    super.key,
+    required this.task,
+    this.onToggle,
+    this.onToggleStar,
+    this.onOpenDetail,
+  });
 
   final Task task;
 
   /// Called when the checkbox is tapped. Null leaves it inert.
   final VoidCallback? onToggle;
+
+  /// Called when the star is tapped. Null leaves it inert.
+  final VoidCallback? onToggleStar;
 
   /// Called when the row is tapped outside the checkbox zone. Null leaves
   /// that area inert.
@@ -26,15 +37,28 @@ class TaskRow extends StatelessWidget {
   /// row's full height. The drawn circle is only 21 wide.
   static const double _checkboxZone = 24 + 21 + 14;
 
+  /// The star's tap target, mirroring the checkbox's: from the title's end
+  /// to the row's right edge, over the row's full height.
+  static const double _starZone = 14 + 20 + 24;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final muted = theme.extension<AppColors>()!.mutedForeground;
     final done = task.isCompleted;
+    final description = switch (task.description?.trim()) {
+      final d? when d.isNotEmpty => d,
+      _ => null,
+    };
+    final now = DateTime.now();
     final reminder = task.reminderAt;
     final deadline = task.deadline;
-    final overdue = isOverdue(deadline: deadline, isCompleted: done);
-    final deadlineColor = overdue ? theme.colorScheme.error : muted;
+    // Past from today (and not completed): error-colored, reminder and
+    // deadline alike - the same date rule, so it's isOverdue for both.
+    Color dateColor(DateTime? at) =>
+        isOverdue(deadline: at, isCompleted: done) ? theme.colorScheme.error : muted;
+    final reminderColor = dateColor(reminder);
+    final deadlineColor = dateColor(deadline);
 
     return Stack(
       children: [
@@ -44,6 +68,9 @@ class TaskRow extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             child: Row(
+              // A wrapped title grows the row downward; the checkbox stays
+              // beside its first line.
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _CheckCircle(completed: done),
                 const SizedBox(width: 14),
@@ -60,37 +87,95 @@ class TaskRow extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (reminder != null) ...[
+                      if (description != null) ...[
                         const SizedBox(height: 3),
                         Text(
-                          TimeOfDay.fromDateTime(reminder).format(context),
+                          description,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall!.copyWith(
                             fontSize: 12,
                             color: muted,
                           ),
                         ),
                       ],
-                      if (deadline != null) ...[
+                      if (reminder != null || deadline != null) ...[
                         const SizedBox(height: 3),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
+                        // One line; wraps only if a narrow row can't fit both.
+                        Wrap(
+                          spacing: 12,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            Icon(Icons.calendar_today, size: 14, color: deadlineColor),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${monthNames[deadline.month - 1].substring(0, 3)} ${deadline.day}',
-                              style: theme.textTheme.bodySmall!.copyWith(
-                                fontSize: 12,
-                                color: deadlineColor,
+                            if (reminder != null)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.schedule,
+                                    size: 14,
+                                    color: reminderColor,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${relativeDayLabel(reminder, now)}, '
+                                    '${TimeOfDay.fromDateTime(reminder).format(context)}',
+                                    style: theme.textTheme.bodySmall!.copyWith(
+                                      fontSize: 12,
+                                      color: reminderColor,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
+                            if (deadline != null)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.calendar_today,
+                                    size: 14,
+                                    color: deadlineColor,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Due ${_lowerFirst(relativeDayLabel(deadline, now))}',
+                                    style: theme.textTheme.bodySmall!.copyWith(
+                                      fontSize: 12,
+                                      color: deadlineColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
                           ],
                         ),
                       ],
                     ],
                   ),
                 ),
+                const SizedBox(width: 14),
+                Icon(
+                  task.isStarred ? Icons.star : Icons.star_border,
+                  size: 20,
+                  color: task.isStarred ? theme.colorScheme.primary : muted,
+                ),
               ],
+            ),
+          ),
+        ),
+        Positioned(
+          right: 0,
+          top: 0,
+          bottom: 0,
+          width: _starZone,
+          child: Semantics(
+            container: true,
+            button: true,
+            toggled: task.isStarred,
+            label: 'Star ${task.title}',
+            excludeSemantics: true,
+            onTap: onToggleStar,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onToggleStar,
             ),
           ),
         ),
@@ -118,6 +203,9 @@ class TaskRow extends StatelessWidget {
     );
   }
 }
+
+/// "Today" -> "today", for "Due today"; "in 2 days" is unchanged.
+String _lowerFirst(String s) => s[0].toLowerCase() + s.substring(1);
 
 class _CheckCircle extends StatelessWidget {
   const _CheckCircle({required this.completed});

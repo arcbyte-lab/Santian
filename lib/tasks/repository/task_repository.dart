@@ -15,31 +15,29 @@ import 'watch_query.dart';
 /// list, which maps onto these four methods exactly.
 class TaskRepository {
   TaskRepository(this._isar, {required NotificationService notifications})
-      : _notifications = notifications,
-        // Registered now, and kept for the repository's life; see watchQuery.
-        _changes = _isar.tasks.watchLazy().asBroadcastStream(onCancel: (_) {});
+    : _notifications = notifications,
+      // Registered now, and kept for the repository's life; see watchQuery.
+      _changes = _isar.tasks.watchLazy().asBroadcastStream(onCancel: (_) {});
 
   final Isar _isar;
   final NotificationService _notifications;
   final Stream<void> _changes;
 
   Stream<List<Task>> watchByList(int listId) => watchQuery(
-        _changes,
-        () => _isar.tasks.filter().listIdEqualTo(listId).findAll(),
-      );
+    _changes,
+    () => _isar.tasks.filter().listIdEqualTo(listId).findAll(),
+  );
 
   /// Every Task in every List. The Tasks List watches this once and derives
   /// each tab from it, so the pages either side of the active one are ready
   /// while a swipe drags them into view.
-  Stream<List<Task>> watchAll() => watchQuery(
-        _changes,
-        () => _isar.tasks.where().findAll(),
-      );
+  Stream<List<Task>> watchAll() =>
+      watchQuery(_changes, () => _isar.tasks.where().findAll());
 
   Stream<List<Task>> watchStarred() => watchQuery(
-        _changes,
-        () => _isar.tasks.filter().isStarredEqualTo(true).findAll(),
-      );
+    _changes,
+    () => _isar.tasks.filter().isStarredEqualTo(true).findAll(),
+  );
 
   /// Fetches the Task with [id], or null if it doesn't exist - e.g. deleted
   /// since a still-pending notification was scheduled against it. Used to
@@ -71,6 +69,33 @@ class TaskRepository {
     await cancelTaskNotifications(_notifications, id);
   }
 
+  /// Removes every Task in the List [listId] - or, with [completedOnly],
+  /// only its completed ones.
+  Future<void> deleteInList(int listId, {bool completedOnly = false}) async {
+    final ids = await _isar.writeTxn(() async {
+      final ids = await _isar.tasks
+          .filter()
+          .listIdEqualTo(listId)
+          .optional(completedOnly, (q) => q.isCompletedEqualTo(true))
+          .idProperty()
+          .findAll();
+      await _isar.tasks.deleteAll(ids);
+      return ids;
+    });
+    for (final id in ids) {
+      await cancelTaskNotifications(_notifications, id);
+    }
+  }
+
+  /// Flips `isStarred` on the stored Task with [task]'s id - the stored
+  /// record, like [toggleCompleted], so a stale row can't overwrite other
+  /// edits. Does nothing if the Task has been deleted. Starring schedules
+  /// nothing, so there is no notification re-sync.
+  Future<void> toggleStarred(Task task) => _isar.writeTxn(() async {
+    final stored = await _isar.tasks.get(task.id);
+    if (stored != null) await _isar.tasks.put(stored..isStarred = !stored.isStarred);
+  });
+
   /// Flips `isCompleted` on the stored Task with [task]'s id. Works on the
   /// stored record, not on [task], so a row that has gone stale cannot
   /// overwrite other edits. Does nothing if the Task has been deleted.
@@ -97,7 +122,8 @@ class TaskRepository {
       if (completing && repeat != null) {
         stored.reminderAt = nextOccurrence(stored.reminderAt!, repeat);
         final deadline = stored.deadline;
-        if (deadline != null) stored.deadline = nextOccurrence(deadline, repeat);
+        if (deadline != null)
+          stored.deadline = nextOccurrence(deadline, repeat);
         stored.isCompleted = false;
       } else {
         stored.isCompleted = completing;

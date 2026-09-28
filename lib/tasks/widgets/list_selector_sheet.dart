@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_radius.dart';
 import '../models/task_list.dart';
-import 'list_icon.dart';
 
 /// Opens the List Selector's own dedicated bottom sheet, listing every List
 /// so a Task's `listId` can be reassigned. Not a reuse of the List Tab Bar's
@@ -18,7 +17,9 @@ Future<TaskList?> showListSelectorSheet(
     barrierColor: const Color(0x40000000),
     clipBehavior: Clip.antiAlias,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(AppRadius.sheet),
+      ),
     ),
     builder: (_) =>
         ListSelectorSheet(lists: lists, currentListId: currentListId),
@@ -45,22 +46,7 @@ class ListSelectorSheet extends StatelessWidget {
           children: [
             for (final list in lists)
               ListTile(
-                leading: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: Color(list.color),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                title: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(iconForList(list.icon), size: 16),
-                    const SizedBox(width: 8),
-                    Text(list.name),
-                  ],
-                ),
+                title: Text(list.name),
                 selected: list.id == currentListId,
                 onTap: () => Navigator.of(context).pop(list),
               ),

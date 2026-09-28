@@ -79,16 +79,11 @@ void main() {
   });
 
   test('a TaskList round-trips', () async {
-    final list = TaskList()
-      ..name = 'My Tasks'
-      ..icon = 'footprints'
-      ..color = 0xFF0284C7;
+    final list = TaskList()..name = 'My Tasks';
 
     final id = await isar.writeTxn(() => isar.taskLists.put(list));
     final read = (await isar.taskLists.get(id))!;
 
     expect(read.name, 'My Tasks');
-    expect(read.icon, 'footprints');
-    expect(read.color, 0xFF0284C7);
   });
 }

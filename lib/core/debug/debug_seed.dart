@@ -14,18 +14,11 @@ Future<void> seedDebugData(Isar isar) async {
       DateTime(now.year, now.month, now.day, hour, minute);
 
   await isar.writeTxn(() async {
-    final personal = await isar.taskLists.put(TaskList()
-      ..name = 'Personal Interest'
-      ..icon = 'rocket'
-      ..color = 0xFF0284C7);
-    final myTasks = await isar.taskLists.put(TaskList()
-      ..name = 'My Tasks'
-      ..icon = 'footprints'
-      ..color = 0xFFF97316);
-    final building = await isar.taskLists.put(TaskList()
-      ..name = 'Building'
-      ..icon = 'hammer'
-      ..color = 0xFF57534E);
+    final personal = await isar.taskLists.put(
+      TaskList()..name = 'Personal Interest',
+    );
+    final myTasks = await isar.taskLists.put(TaskList()..name = 'My Tasks');
+    final building = await isar.taskLists.put(TaskList()..name = 'Building');
 
     await isar.tasks.putAll([
       Task()

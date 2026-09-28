@@ -9,12 +9,10 @@ import '../repository/task_repository.dart';
 import 'tasks_list_state.dart';
 
 class TasksListCubit extends Cubit<TasksListState> {
-  TasksListCubit({
-    required TaskRepository tasks,
-    required ListRepository lists,
-  })  : _tasks = tasks,
-        _lists = lists,
-        super(const TasksListState()) {
+  TasksListCubit({required TaskRepository tasks, required ListRepository lists})
+    : _tasks = tasks,
+      _lists = lists,
+      super(const TasksListState()) {
     _listsSub = lists.watchAll().listen(_onLists);
     _tasksSub = tasks.watchAll().listen(_onTasks);
   }
@@ -38,6 +36,22 @@ class TasksListCubit extends Cubit<TasksListState> {
   /// there is nothing to emit here.
   Future<void> toggleCompleted(Task task) => _tasks.toggleCompleted(task);
 
+  Future<void> toggleStarred(Task task) => _tasks.toggleStarred(task);
+
+  Future<void> renameList(int listId, String name) =>
+      _lists.rename(listId, name.trim());
+
+  /// Deletes the List and every Task in it. The lists stream then moves the
+  /// active tab to the first remaining List. Tasks go first, so a failure
+  /// part-way can't leave Tasks behind in a List that no longer exists.
+  Future<void> deleteList(int listId) async {
+    await _tasks.deleteInList(listId);
+    await _lists.delete(listId);
+  }
+
+  Future<void> deleteCompletedTasks(int listId) =>
+      _tasks.deleteInList(listId, completedOnly: true);
+
   void _onLists(List<TaskList> lists) {
     final active = state.activeTab;
     final stillValid = switch (active) {
@@ -47,13 +61,15 @@ class TasksListCubit extends Cubit<TasksListState> {
     };
 
     if (stillValid) {
-      emit(TasksListState(
-        lists: lists,
-        activeTab: active,
-        lastListId: state.lastListId,
-        allTasks: state.allTasks,
-        isLoading: state.isLoading,
-      ));
+      emit(
+        TasksListState(
+          lists: lists,
+          activeTab: active,
+          lastListId: state.lastListId,
+          allTasks: state.allTasks,
+          isLoading: state.isLoading,
+        ),
+      );
       return;
     }
 
@@ -63,11 +79,13 @@ class TasksListCubit extends Cubit<TasksListState> {
         _creatingDefaultList = true;
         _lists.createDefault();
       }
-      emit(TasksListState(
-        lists: lists,
-        allTasks: state.allTasks,
-        isLoading: state.isLoading,
-      ));
+      emit(
+        TasksListState(
+          lists: lists,
+          allTasks: state.allTasks,
+          isLoading: state.isLoading,
+        ),
+      );
     } else {
       _creatingDefaultList = false;
       _activate(ListTab(lists.first.id), lists: lists);
@@ -75,23 +93,27 @@ class TasksListCubit extends Cubit<TasksListState> {
   }
 
   void _activate(TasksTab tab, {required List<TaskList> lists}) {
-    emit(TasksListState(
-      lists: lists,
-      activeTab: tab,
-      lastListId: tab is ListTab ? tab.listId : state.lastListId,
-      allTasks: state.allTasks,
-      isLoading: state.isLoading,
-    ));
+    emit(
+      TasksListState(
+        lists: lists,
+        activeTab: tab,
+        lastListId: tab is ListTab ? tab.listId : state.lastListId,
+        allTasks: state.allTasks,
+        isLoading: state.isLoading,
+      ),
+    );
   }
 
   void _onTasks(List<Task> tasks) {
-    emit(TasksListState(
-      lists: state.lists,
-      activeTab: state.activeTab,
-      lastListId: state.lastListId,
-      allTasks: tasks,
-      isLoading: false,
-    ));
+    emit(
+      TasksListState(
+        lists: state.lists,
+        activeTab: state.activeTab,
+        lastListId: state.lastListId,
+        allTasks: tasks,
+        isLoading: false,
+      ),
+    );
   }
 
   @override
