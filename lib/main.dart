@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:santian/primary_view.dart';
 
 import 'app.dart';
 import 'core/debug/debug_seed.dart';
@@ -12,7 +13,6 @@ import 'tasks/models/task_list.dart';
 import 'tasks/repository/list_repository.dart';
 import 'tasks/repository/task_repository.dart';
 import 'tasks/screens/task_detail_sheet.dart';
-import 'tasks/screens/tasks_list_screen.dart';
 
 final _navigatorKey = GlobalKey<NavigatorState>();
 
@@ -39,10 +39,7 @@ Future<void> main() async {
         RepositoryProvider.value(value: tasks),
         RepositoryProvider(create: (_) => ListRepository(isar)),
       ],
-      child: SantianApp(
-        navigatorKey: _navigatorKey,
-        home: const TasksListScreen(),
-      ),
+      child: SantianApp(navigatorKey: _navigatorKey, home: const PrimaryView()),
     ),
   );
 

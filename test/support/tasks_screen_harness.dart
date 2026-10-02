@@ -7,7 +7,7 @@ import 'package:santian/tasks/models/task.dart';
 import 'package:santian/tasks/models/task_list.dart';
 import 'package:santian/tasks/repository/list_repository.dart';
 import 'package:santian/tasks/repository/task_repository.dart';
-import 'package:santian/tasks/screens/tasks_list_screen.dart';
+import 'package:santian/tasks/screens/tasks_list_panel.dart';
 
 import 'fake_notification_service.dart';
 import 'test_isar.dart';
@@ -50,7 +50,7 @@ class TasksScreenHarness {
           ),
           RepositoryProvider(create: (_) => ListRepository(db.isar)),
         ],
-        child: const SantianApp(home: TasksListScreen()),
+        child: const SantianApp(home: TasksListPanel()),
       ),
     );
     await h.settle();

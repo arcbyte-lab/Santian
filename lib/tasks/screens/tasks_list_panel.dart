@@ -12,8 +12,8 @@ import 'tasks_list_view.dart';
 
 /// Wires [TasksListView] to a [TasksListCubit]. Needs a [TaskRepository] and a
 /// [ListRepository] above it in the tree.
-class TasksListScreen extends StatelessWidget {
-  const TasksListScreen({super.key});
+class TasksListPanel extends StatelessWidget {
+  const TasksListPanel({super.key});
 
   @override
   Widget build(BuildContext context) {
